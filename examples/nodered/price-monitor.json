@@ -1,0 +1,115 @@
+[
+    {
+        "id": "price-monitor-flow",
+        "type": "tab",
+        "label": "Price Monitor",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "http-request-node",
+        "type": "http request",
+        "z": "price-monitor-flow",
+        "name": "Get BTC Price",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "http://quantflow-app:3000/price/BTCUSDT",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 350,
+        "y": 100,
+        "wires": [
+            [
+                "debug-node",
+                "change-node"
+            ]
+        ]
+    },
+    {
+        "id": "inject-node",
+        "type": "inject",
+        "z": "price-monitor-flow",
+        "name": "Trigger",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "60",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 150,
+        "y": 100,
+        "wires": [
+            [
+                "http-request-node"
+            ]
+        ]
+    },
+    {
+        "id": "debug-node",
+        "type": "debug",
+        "z": "price-monitor-flow",
+        "name": "Debug Output",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 550,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "change-node",
+        "type": "change",
+        "z": "price-monitor-flow",
+        "name": "Format Price",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "BTC Price: ${{payload.price}}",
+                "tot": "jsonata"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 350,
+        "y": 160,
+        "wires": [
+            [
+                "debug-node-2"
+            ]
+        ]
+    },
+    {
+        "id": "debug-node-2",
+        "type": "debug",
+        "z": "price-monitor-flow",
+        "name": "Formatted Output",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 550,
+        "y": 160,
+        "wires": []
+    }
+]

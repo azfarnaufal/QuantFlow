@@ -33,6 +33,9 @@ try {
   };
 }
 
+// Import Redis cache
+const RedisCache = require('../core/redis-cache');
+
 /**
  * TimescaleDB Storage
  * PostgreSQL/TimescaleDB storage implementation with connection pooling
@@ -47,6 +50,9 @@ class TimescaleDBStorage {
       idleTimeoutMillis: config.dbPoolIdleTimeout || 30000, // Close idle clients after 30 seconds
       connectionTimeoutMillis: config.dbPoolConnectionTimeout || 2000, // Return an error after 2 seconds if connection could not be established
     });
+    
+    // Initialize Redis cache
+    this.cache = new RedisCache();
     
     this.initDatabase();
   }
@@ -109,6 +115,10 @@ class TimescaleDBStorage {
         data.price,
         data.volume
       ]);
+      
+      // Invalidate cache for this symbol since we have new data
+      await this.cache.del(`latest_price_${symbol}`);
+      await this.cache.del(`price_summary`);
     } catch (error) {
       console.error('Error storing price data:', error);
     } finally {
@@ -122,6 +132,13 @@ class TimescaleDBStorage {
    * @returns {Object} Latest price data
    */
   async getLatestPriceData(symbol) {
+    // Try to get from cache first
+    const cacheKey = `latest_price_${symbol}`;
+    const cachedData = await this.cache.get(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
+    
     const client = await this.pool.connect();
     try {
       const result = await client.query(
@@ -129,7 +146,14 @@ class TimescaleDBStorage {
         [symbol]
       );
       
-      return result.rows[0] || null;
+      const data = result.rows[0] || null;
+      
+      // Cache the result for future requests
+      if (data) {
+        await this.cache.set(cacheKey, data, 30); // Cache for 30 seconds
+      }
+      
+      return data;
     } catch (error) {
       console.error('Error getting latest price data:', error);
       return null;
@@ -203,6 +227,13 @@ class TimescaleDBStorage {
    * @returns {Object} Summary of all tracked symbols
    */
   async getSummary() {
+    // Try to get from cache first
+    const cacheKey = `price_summary`;
+    const cachedData = await this.cache.get(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
+    
     const client = await this.pool.connect();
     try {
       const result = await client.query(`
@@ -220,6 +251,9 @@ class TimescaleDBStorage {
           timestamp: row.time
         };
       });
+      
+      // Cache the result for future requests
+      await this.cache.set(cacheKey, summary, 30); // Cache for 30 seconds
       
       return summary;
     } catch (error) {
@@ -252,6 +286,7 @@ class TimescaleDBStorage {
    */
   async close() {
     await this.pool.end();
+    await this.cache.close();
   }
 }
 

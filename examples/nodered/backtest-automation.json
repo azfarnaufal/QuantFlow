@@ -1,0 +1,131 @@
+[
+    {
+        "id": "backtest-automation-flow",
+        "type": "tab",
+        "label": "Backtest Automation",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "inject-node",
+        "type": "inject",
+        "z": "backtest-automation-flow",
+        "name": "Run Backtest",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "0 0 * * 1",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 150,
+        "y": 100,
+        "wires": [
+            [
+                "function-node"
+            ]
+        ]
+    },
+    {
+        "id": "function-node",
+        "type": "function",
+        "z": "backtest-automation-flow",
+        "name": "Prepare Backtest Request",
+        "func": "const now = new Date();\nconst endDate = now.toISOString();\nconst startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days ago\n\nmsg.payload = {\n    symbol: \"BTCUSDT\",\n    strategy: \"moving_average\",\n    startDate: startDate,\n    endDate: endDate,\n    initialCapital: 10000\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 100,
+        "wires": [
+            [
+                "http-request-node"
+            ]
+        ]
+    },
+    {
+        "id": "http-request-node",
+        "type": "http request",
+        "z": "backtest-automation-flow",
+        "name": "Run Backtest",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "http://quantflow-app:3000/backtest/run",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 600,
+        "y": 100,
+        "wires": [
+            [
+                "debug-node",
+                "switch-node"
+            ]
+        ]
+    },
+    {
+        "id": "debug-node",
+        "type": "debug",
+        "z": "backtest-automation-flow",
+        "name": "Backtest Results",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 800,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "switch-node",
+        "type": "switch",
+        "z": "backtest-automation-flow",
+        "name": "Check Profitability",
+        "property": "payload.totalReturn",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "gt",
+                "v": "0.1",
+                "vt": "num"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 600,
+        "y": 160,
+        "wires": [
+            [
+                "email-node"
+            ]
+        ]
+    },
+    {
+        "id": "email-node",
+        "type": "e-mail",
+        "z": "backtest-automation-flow",
+        "server": "smtp.gmail.com",
+        "port": "465",
+        "secure": true,
+        "tls": true,
+        "usetls": true,
+        "useStartTLS": true,
+        "name": "Send Email Alert",
+        "dname": "Email",
+        "x": 800,
+        "y": 160,
+        "wires": []
+    }
+]

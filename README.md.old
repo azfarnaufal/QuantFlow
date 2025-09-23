@@ -20,13 +20,12 @@ QuantFlow is a comprehensive quantitative trading platform that provides real-ti
 - **Real-time Calculations**: On-the-fly technical indicator computation
 
 ### Sophisticated Backtesting Engine
-- **Multiple Strategies**: 8+ built-in strategies including Moving Average, RSI, MACD, and Bollinger Bands
+- **Multiple Strategies**: 6+ built-in strategies including Moving Average, RSI, MACD, and Bollinger Bands
 - **Enhanced Strategies**: Machine Learning and Portfolio strategies for advanced backtesting
 - **Performance Metrics**: Comprehensive metrics including Sharpe ratio, max drawdown, and volatility
 - **Walk-forward Analysis**: Robust strategy validation with rolling window testing
 - **Strategy Comparison**: Side-by-side strategy performance evaluation
 - **Transaction Cost Modeling**: Realistic backtesting with transaction costs
-- **Strategy Optimization**: Parameter tuning capabilities
 
 ### Risk Management & Alerts
 - **Multi-channel Notifications**: Telegram, Discord, and Email alerting system
@@ -42,10 +41,6 @@ QuantFlow is a comprehensive quantitative trading platform that provides real-ti
 - **Docker Support**: Containerized deployment for easy setup and scaling
 - **Multi-container Architecture**: Separate services for database, caching, and application
 - **Docker Compose**: Single-command deployment of the entire stack
-- **Kubernetes Support**: Production-ready Kubernetes deployment configurations
-- **Health Monitoring**: Comprehensive health checks for all services
-- **Prometheus & Grafana**: Monitoring and visualization stack
-- **Automated Backups**: Scheduled backup solutions for data protection
 
 ## 📊 Performance Optimizations
 
@@ -66,9 +61,6 @@ QuantFlow is a comprehensive quantitative trading platform that provides real-ti
 - **n8n**: Extendable workflow automation tool
 - **Huginn**: Agent-based automation tool
 - **Docker**: Containerization platform
-- **Kubernetes**: Container orchestration platform
-- **Prometheus**: Monitoring and alerting toolkit
-- **Grafana**: Analytics and monitoring platform
 
 ## 🚀 Quick Start
 
@@ -94,8 +86,6 @@ docker-compose up -d
 - Main API: http://localhost:3000
 - Node-RED: http://localhost:1880
 - TimescaleDB: postgresql://localhost:5432
-- Grafana: http://localhost:3001 (admin/admin)
-- Prometheus: http://localhost:9090
 
 ### API Endpoints
 
@@ -103,8 +93,6 @@ docker-compose up -d
 - `GET /prices` - Get latest prices for all tracked symbols
 - `GET /price/:symbol` - Get latest price for a specific symbol
 - `GET /history/:symbol` - Get price history for a symbol
-- `GET /api/chart/ohlc/:symbol` - Get OHLC data for candlestick charts
-- `GET /api/chart/timeseries/:symbol` - Get time series data for line charts
 
 #### Backtesting
 - `GET /backtest/strategies` - List available backtesting strategies
@@ -112,12 +100,6 @@ docker-compose up -d
 
 #### Health Check
 - `GET /health` - System health status
-- `GET /health/detailed` - Detailed system health information
-- `GET /health/aggregate` - Aggregated health check for all services
-- `GET /metrics` - Prometheus metrics endpoint
-
-#### Documentation
-- `GET /api-docs` - Swagger API documentation
 
 ## 📈 Backtesting Strategies
 
@@ -146,65 +128,26 @@ QuantFlow includes several built-in backtesting strategies:
 - Persistent data volumes
 - Network isolation
 - Restart policies
-- Kubernetes deployment configurations
-- Health checks for all services
-- Monitoring with Prometheus and Grafana
-- Automated backup solutions
 
 ### Workflow Automation
 - Node-RED visual programming interface
 - Pre-built n8n workflows
 - Huginn scenario templates
 - API integration examples
-- Node-RED flow examples
-
-### Data Processing
-- Real-time technical indicators calculation
-- Machine learning model integration
-- Data visualization endpoints
-- Historical data import functionality
-
-### Microservices Architecture (Planned)
-- Price ingestion service
-- Storage service
-- Backtesting service
-- Alerting service
-- API gateway
-- Node-RED service
 
 ## 📚 Documentation
 
 Detailed documentation is available in the [docs](./docs) directory:
 
-### Core Documentation
 - [Getting Started Guide](./docs/GETTING-STARTED.md)
 - [Architecture Summary](./docs/architecture-summary.md)
 - [Performance Optimizations](./docs/performance-optimizations.md)
 - [Backtesting Enhancements](./docs/backtesting-enhancements.md)
-
-### Strategy Documentation
-- [ML Strategy](./docs/strategies/ml-strategy.md)
-- [Portfolio Strategy](./docs/strategies/portfolio-strategy.md)
-
-### Integration Guides
+- [Strategy Documentation](./docs/strategies/)
+  - [ML Strategy](./docs/strategies/ml-strategy.md)
+  - [Portfolio Strategy](./docs/strategies/portfolio-strategy.md)
 - [Node-RED Integration](./docs/NODE-RED-INTEGRATION.md)
 - [Deployment Guide](./docs/FINAL-SUMMARY.md)
-
-### Advanced Topics
-- [Strategy Development Guide](./docs/guides/strategy-development.md)
-- [Deployment Guide for Cloud Platforms](./docs/guides/deployment.md)
-- [Microservices Architecture](./docs/architecture/microservices.md)
-- [Real-time Technical Indicators](./docs/data-processing/technical-indicators.md)
-- [Machine Learning Integration](./docs/data-processing/ml-integration.md)
-- [Data Visualization Endpoints](./docs/data-processing/data-visualization.md)
-- [Historical Data Import](./docs/data-processing/historical-data-import.md)
-- [Kubernetes Deployment](./docs/containerization/kubernetes.md)
-- [Health Checks for All Services](./docs/containerization/health-checks.md)
-- [Monitoring with Prometheus and Grafana](./docs/containerization/monitoring.md)
-- [Automated Backup Solutions](./docs/containerization/backup.md)
-
-### Examples
-- [Node-RED Flow Examples](./examples/nodered/)
 
 ## 🧪 Testing
 
@@ -217,7 +160,6 @@ Run specific tests:
 ```bash
 node tests/test-backtesting.js
 node tests/test-ml-strategy.js
-node tests/test-redis-cache.js
 ```
 
 ## 🤝 Contributing
@@ -240,7 +182,6 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 - Node-RED community for workflow automation tools
 - n8n team for workflow automation platform
 - Huginn community for agent-based automation
-- Prometheus and Grafana communities for monitoring tools
 
 ## 📞 Support
 

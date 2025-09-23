@@ -1,6 +1,10 @@
 // Backtesting Engine
 // Enhanced backtesting engine with sophisticated strategies and walk-forward analysis
 
+// Import new strategies
+const MLStrategy = require('../strategies/ml-strategy');
+const PortfolioStrategy = require('../strategies/portfolio-strategy');
+
 /**
  * Backtesting Engine
  * Implements strategy backtesting with historical data, performance metrics, and walk-forward analysis
@@ -396,26 +400,41 @@ class BacktestingEngine {
   }
 
   /**
+   * Machine Learning Strategy
+   * @param {Array} prices - Array of price data
+   * @param {Object} options - Strategy options
+   * @returns {Object} Strategy results
+   */
+  static mlStrategy(prices, options = {}) {
+    const strategy = new MLStrategy(options);
+    return strategy.generateSignals(prices);
+  }
+
+  /**
+   * Portfolio Strategy
+   * @param {Object} multiAssetData - Price data for multiple assets
+   * @param {Object} options - Strategy options
+   * @returns {Object} Strategy results
+   */
+  static portfolioStrategy(multiAssetData, options = {}) {
+    const strategy = new PortfolioStrategy(options);
+    return strategy.generateBacktest(multiAssetData);
+  }
+
+  /**
    * Backtest a strategy
    * @param {string} strategyName - Name of the strategy to backtest
-   * @param {Array} priceData - Array of price data
+   * @param {Array|Object} data - Array of price data for single asset or object for multi-asset
    * @param {Object} options - Strategy options
    * @returns {Object} Backtest results
    */
-  backtest(strategyName, priceData, options = {}) {
+  backtest(strategyName, data, options = {}) {
     if (!this.strategies.has(strategyName)) {
       throw new Error(`Strategy '${strategyName}' not found`);
     }
 
     const strategy = this.strategies.get(strategyName);
-    return strategy(priceData, 
-      options.shortPeriod, 
-      options.longPeriod, 
-      options.period, 
-      options.overbought, 
-      options.oversold,
-      options.threshold
-    );
+    return strategy(data, options);
   }
 
   /**
@@ -591,5 +610,7 @@ engine.registerStrategy('smaCrossover', BacktestingEngine.smaCrossoverStrategy);
 engine.registerStrategy('rsiMeanReversion', BacktestingEngine.rsiMeanReversionStrategy);
 engine.registerStrategy('momentum', BacktestingEngine.momentumStrategy);
 engine.registerStrategy('meanReversion', BacktestingEngine.meanReversionStrategy);
+engine.registerStrategy('mlStrategy', BacktestingEngine.mlStrategy);
+engine.registerStrategy('portfolioStrategy', BacktestingEngine.portfolioStrategy);
 
 module.exports = engine;

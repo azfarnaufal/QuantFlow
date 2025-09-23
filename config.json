@@ -14,5 +14,7 @@
   "dbPoolMax": 20,
   "dbPoolMin": 5,
   "dbPoolIdleTimeout": 30000,
-  "dbPoolConnectionTimeout": 2000
+  "dbPoolConnectionTimeout": 2000,
+  "redisUrl": "redis://redis:6379",
+  "redisCacheTTL": 30
 }

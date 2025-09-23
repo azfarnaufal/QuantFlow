@@ -14,6 +14,15 @@ services:
       - timescaledb_data:/var/lib/postgresql/data
     restart: unless-stopped
 
+  redis:
+    image: redis:latest
+    container_name: quantflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
   quantflow-app:
     build: .
     container_name: quantflow-app
@@ -21,9 +30,11 @@ services:
       - "3000:3000"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@timescaledb:5432/quantflow
+      - REDIS_URL=redis://redis:6379
       - NODE_ENV=production
     depends_on:
       - timescaledb
+      - redis
     restart: unless-stopped
 
   node-red:
@@ -39,4 +50,5 @@ services:
 
 volumes:
   timescaledb_data:
+  redis_data:
   node_red_data:
