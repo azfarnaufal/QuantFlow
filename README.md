@@ -100,20 +100,19 @@ quantflow/
 ├── src/
 │   ├── core/                 # Core components (WebSocket client, alert system)
 │   ├── storage/              # Storage implementations (TimescaleDB, Memory)
-│   ├── backtesting/          # Backtesting engine and strategies
-│   ├── utils/                # Utility functions (technical indicators)
-│   └── strategies/           # Trading strategies
-├── tests/                   # Unit tests
+│   ├── backtesting/          # Backtesting engine, strategies, and integration files
+│   ├── utils/                # Utility functions (technical indicators, watchlist manager)
+│   └── config/               # Configuration files (JSON, Docker, SQL)
+├── tests/                   # Unit tests for all modules
 │   ├── core/
 │   ├── storage/
 │   ├── backtesting/
 │   └── utils/
+├── scripts/                 # Deployment and management scripts
+├── tools/                   # Development tools and utilities
 ├── public/                  # Static files for dashboard
 ├── docs/                    # Documentation
-├── config.json              # Configuration file
 ├── server.js                # Main server entry point
-├── Dockerfile               # Docker configuration
-├── docker-compose.yml       # Docker Compose orchestration
 └── package.json             # Project dependencies and scripts
 ```
 
