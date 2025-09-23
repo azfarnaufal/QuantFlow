@@ -10,7 +10,7 @@
   "serverPort": 3000,
   "reconnectInterval": 5000,
   "maxHistoryLength": 100,
-  "databaseUrl": "postgresql://postgres:postgres@localhost:5432/quantflow",
+  "databaseUrl": "postgresql://postgres:postgres@timescaledb:5432/quantflow",
   "dbPoolMax": 20,
   "dbPoolMin": 5,
   "dbPoolIdleTimeout": 30000,

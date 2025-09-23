@@ -1,7 +1,34 @@
 // Simple Web Dashboard for Crypto Price Tracker
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const BinancePerpetualPriceTracker = require('./binance-ws-client');
+
+// Load config file
+let config;
+try {
+  // Try to load from src/config directory first (for development)
+  const configPath = path.join(__dirname, '../config/config.json');
+  if (fs.existsSync(configPath)) {
+    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  } else {
+    // Fallback to root directory (for Docker)
+    const rootConfigPath = path.join(__dirname, '../../config.json');
+    if (fs.existsSync(rootConfigPath)) {
+      config = JSON.parse(fs.readFileSync(rootConfigPath, 'utf8'));
+    } else {
+      // Final fallback to src/config directory with absolute path
+      const absoluteConfigPath = path.join(process.cwd(), 'src/config/config.json');
+      config = JSON.parse(fs.readFileSync(absoluteConfigPath, 'utf8'));
+    }
+  }
+} catch (error) {
+  console.error('Error loading config file:', error);
+  // Use default config if file cannot be loaded
+  config = {
+    symbolsToTrack: ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT']
+  };
+}
 
 const app = express();
 const port = 3002;
@@ -45,7 +72,6 @@ app.listen(port, () => {
   priceTracker.connect();
   
   // Subscribe to symbols from config
-  const config = require('./config.json');
   setTimeout(() => {
     console.log('Subscribing to symbols for dashboard...');
     config.symbolsToTrack.forEach(symbol => {

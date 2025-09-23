@@ -1,6 +1,37 @@
 // TimescaleDB Storage Implementation with Connection Pooling
 const { Pool } = require('pg');
-const config = require('../../config.json');
+const fs = require('fs');
+const path = require('path');
+
+// Load config file
+let config;
+try {
+  // Try to load from src/config directory first (for development)
+  const configPath = path.join(__dirname, '../config/config.json');
+  if (fs.existsSync(configPath)) {
+    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  } else {
+    // Fallback to root directory (for Docker)
+    const rootConfigPath = path.join(__dirname, '../../config.json');
+    if (fs.existsSync(rootConfigPath)) {
+      config = JSON.parse(fs.readFileSync(rootConfigPath, 'utf8'));
+    } else {
+      // Final fallback to src/config directory with absolute path
+      const absoluteConfigPath = path.join(process.cwd(), 'src/config/config.json');
+      config = JSON.parse(fs.readFileSync(absoluteConfigPath, 'utf8'));
+    }
+  }
+} catch (error) {
+  console.error('Error loading config file:', error);
+  // Use default config if file cannot be loaded
+  config = {
+    databaseUrl: 'postgresql://postgres:postgres@localhost:5432/quantflow',
+    dbPoolMax: 20,
+    dbPoolMin: 5,
+    dbPoolIdleTimeout: 30000,
+    dbPoolConnectionTimeout: 2000
+  };
+}
 
 /**
  * TimescaleDB Storage
