@@ -2,6 +2,10 @@
 
 A comprehensive financial market analytics platform with real-time data ingestion, machine learning predictions, backtesting engine, and automated alerting system.
 
+## Project Evolution
+
+Originally started as a simple crypto price tracker, QuantFlow has evolved into a sophisticated quantitative trading platform that integrates multiple technologies for comprehensive market analysis and automated trading workflows.
+
 ## Features
 
 1. **Real-time Market Data Ingestion** - Tracks prices from Binance Perpetual Futures WebSocket
@@ -19,8 +23,9 @@ A comprehensive financial market analytics platform with real-time data ingestio
 - WebSocket client for real-time market data
 - TimescaleDB for time-series data storage
 - Chart.js for data visualization
+- Node-RED for workflow automation and data transformation
 - RESTful API architecture
-- Docker containerization ready
+- Docker containerization with Docker Compose orchestration
 
 ## Core Components
 
@@ -89,9 +94,30 @@ A comprehensive financial market analytics platform with real-time data ingestio
 
 ## Docker Deployment
 
+The project includes a comprehensive Docker Compose setup that orchestrates all services:
+
 ```bash
 docker-compose up -d
 ```
+
+This will start:
+- QuantFlow application server on port 3000
+- TimescaleDB database on port 5432
+- Node-RED interface on port 1880
+
+## Node-RED Integration
+
+QuantFlow includes enhanced Node-RED integration for workflow automation:
+
+- Dedicated API endpoints for Node-RED consumption
+- Example flows demonstrating data processing pipelines
+- Real-time data access for workflow triggers
+- Technical analysis ready data formats
+
+To use the Node-RED integration:
+1. Start the Node-RED integration server: `node nodered-integration.js`
+2. Import the example flow from `quantflow-nodered-example.json`
+3. Configure your workflows to consume QuantFlow data
 
 ## License
 

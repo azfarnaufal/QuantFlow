@@ -1,0 +1,129 @@
+[
+    {
+        "id": "quantflow-data-flow",
+        "type": "tab",
+        "label": "QuantFlow Data Integration",
+        "disabled": false,
+        "info": "Example flow showing integration with QuantFlow platform"
+    },
+    {
+        "id": "inject-node",
+        "type": "inject",
+        "z": "quantflow-data-flow",
+        "name": "Trigger Data Fetch",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "5",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 150,
+        "y": 100,
+        "wires": [
+            [
+                "http-request-node"
+            ]
+        ]
+    },
+    {
+        "id": "http-request-node",
+        "type": "http request",
+        "z": "quantflow-data-flow",
+        "name": "Get BTC Price",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "http://localhost:3001/nodered/price/BTCUSDT",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 350,
+        "y": 100,
+        "wires": [
+            [
+                "debug-node",
+                "function-node"
+            ]
+        ]
+    },
+    {
+        "id": "debug-node",
+        "type": "debug",
+        "z": "quantflow-data-flow",
+        "name": "Price Data",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 550,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "function-node",
+        "type": "function",
+        "z": "quantflow-data-flow",
+        "name": "Check Alert Condition",
+        "func": "// Example function to check if price exceeds threshold\nconst price = msg.payload.price;\nconst threshold = 60000; // Set your threshold\n\nif (price > threshold) {\n    msg.payload = {\n        symbol: msg.payload.symbol,\n        price: price,\n        message: `Price alert: ${msg.payload.symbol} exceeded $${threshold}`,\n        timestamp: new Date().toISOString()\n    };\n    return [msg, null]; // Send to first output (alert)\n} else {\n    return [null, msg]; // Send to second output (normal)\n}",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 370,
+        "y": 180,
+        "wires": [
+            [
+                "alert-debug"
+            ],
+            [
+                "normal-debug"
+            ]
+        ]
+    },
+    {
+        "id": "alert-debug",
+        "type": "debug",
+        "z": "quantflow-data-flow",
+        "name": "Alert Triggered",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "full",
+        "statusVal": "payload.message",
+        "statusType": "auto",
+        "x": 570,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "normal-debug",
+        "type": "debug",
+        "z": "quantflow-data-flow",
+        "name": "Normal Data",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 570,
+        "y": 200,
+        "wires": []
+    }
+]

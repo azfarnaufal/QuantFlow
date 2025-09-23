@@ -1,5 +1,5 @@
-// Node-RED Integration Example
-// This script shows how to create a simple HTTP endpoint that Node-RED can poll
+// QuantFlow Node-RED Integration Module
+// This script provides enhanced HTTP endpoints for Node-RED integration with QuantFlow platform
 
 const express = require('express');
 const BinancePerpetualPriceTracker = require('./binance-ws-client');
@@ -56,18 +56,42 @@ app.get('/nodered/price/:symbol', (req, res) => {
   }
 });
 
+// Endpoint to get technical indicators for a symbol
+app.get('/nodered/indicators/:symbol', (req, res) => {
+  try {
+    const symbol = req.params.symbol.toUpperCase();
+    const data = priceTracker.getLatestPriceData(symbol);
+    
+    if (data) {
+      // Return data that can be processed by Node-RED for technical analysis
+      res.json({
+        symbol: symbol,
+        price: data.price,
+        volume: data.volume,
+        timestamp: data.timestamp,
+        message: 'Data ready for technical analysis in Node-RED'
+      });
+    } else {
+      res.status(404).json({ error: `No data found for symbol ${symbol}` });
+    }
+  } catch (error) {
+    console.error('Error getting indicator data:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Health check endpoint
 app.get('/nodered/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    message: 'Node-RED integration server is running'
+    message: 'QuantFlow Node-RED integration server is running'
   });
 });
 
 // Start the Node-RED integration server
 app.listen(port, () => {
-  console.log(`Node-RED integration server running at http://localhost:${port}`);
+  console.log(`QuantFlow Node-RED integration server running at http://localhost:${port}`);
   
   // Connect to Binance WebSocket
   priceTracker.connect();
@@ -83,9 +107,9 @@ app.listen(port, () => {
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
-  console.log('\nShutting down Node-RED integration server gracefully...');
+  console.log('\nShutting down QuantFlow Node-RED integration server gracefully...');
   priceTracker.close();
   process.exit(0);
 });
 
-console.log('Node-RED integration server started. Use with Node-RED HTTP request nodes.');
+console.log('QuantFlow Node-RED integration server started. Use with Node-RED HTTP request nodes for enhanced workflow automation.');
