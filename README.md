@@ -8,30 +8,32 @@ Originally started as a simple crypto price tracker, QuantFlow has evolved into 
 
 ## Features
 
-1. **Real-time Market Data Ingestion** - Tracks prices from Binance Perpetual Futures WebSocket
+1. **Real-time Market Data Ingestion** - Tracks prices from Binance Perpetual Futures WebSocket with batch processing for improved performance
 2. **Machine Learning Predictions** - Predictive models for price forecasting with accuracy metrics
-3. **Strategy Backtesting Engine** - Historical data backtesting with performance metrics
+3. **Enhanced Strategy Backtesting Engine** - Historical data backtesting with performance metrics, transaction cost modeling, and walk-forward analysis
 4. **Advanced Alerting System** - Pattern-based alerts with multi-channel notifications (Telegram, Discord, Email)
 5. **Enhanced Dashboard** - Comparison charts, volume analysis, and customizable watchlists
 6. **Technical Indicators** - RSI, MACD, SMA, EMA, Bollinger Bands and more
-7. **Persistent Storage** - TimescaleDB integration for historical data management
-8. **Portfolio Simulation** - Virtual trading with performance tracking
+7. **Persistent Storage** - TimescaleDB integration with connection pooling for historical data management
+8. **Portfolio Simulation** - Virtual trading with performance tracking and transaction cost modeling
 
 ## Technology Stack
 
 - Node.js with Express.js
 - WebSocket client for real-time market data
-- TimescaleDB for time-series data storage
+- TimescaleDB for time-series data storage with connection pooling
 - Chart.js for data visualization
 - Node-RED for workflow automation and data transformation
 - RESTful API architecture
 - Docker containerization with Docker Compose orchestration
+- Jest for unit testing
 
 ## Core Components
 
 ### Data Ingestion
 - Real-time WebSocket connection to Binance Perpetual Futures
 - Configurable symbol tracking
+- Batch processing for improved performance
 - Persistent data storage with TimescaleDB
 
 ### Analytics Engine
@@ -39,10 +41,15 @@ Originally started as a simple crypto price tracker, QuantFlow has evolved into 
 - Technical indicator calculations
 - Custom algorithmic strategy implementation
 
-### Backtesting Framework
-- Historical data strategy testing
+### Enhanced Backtesting Framework
+- Historical data strategy testing with multiple sophisticated strategies:
+  - Simple Moving Average Crossover
+  - RSI Mean Reversion
+  - Momentum
+  - Mean Reversion
 - Performance metrics (Sharpe ratio, max drawdown, etc.)
-- Portfolio simulation capabilities
+- Portfolio simulation with transaction cost modeling
+- Walk-forward analysis for strategy validation
 
 ### Alerting System
 - Price threshold alerts
@@ -86,11 +93,35 @@ Originally started as a simple crypto price tracker, QuantFlow has evolved into 
 - `/volume/:symbol` - Get trading volume data
 - `/compare` - Compare multiple symbols
 
+## Project Structure
+
+```
+quantflow/
+├── src/
+│   ├── core/                 # Core components (WebSocket client, alert system)
+│   ├── storage/              # Storage implementations (TimescaleDB, Memory)
+│   ├── backtesting/          # Backtesting engine and strategies
+│   ├── utils/                # Utility functions (technical indicators)
+│   └── strategies/           # Trading strategies
+├── tests/                   # Unit tests
+│   ├── core/
+│   ├── storage/
+│   ├── backtesting/
+│   └── utils/
+├── public/                  # Static files for dashboard
+├── docs/                    # Documentation
+├── config.json              # Configuration file
+├── server.js                # Main server entry point
+├── Dockerfile               # Docker configuration
+├── docker-compose.yml       # Docker Compose orchestration
+└── package.json             # Project dependencies and scripts
+```
+
 ## Quick Start
 
 1. Install dependencies: `npm install`
 2. Configure TimescaleDB connection in environment variables
-3. Run the server: `node server.js`
+3. Run the server: `npm start`
 
 ## Docker Deployment
 
@@ -115,9 +146,44 @@ QuantFlow includes enhanced Node-RED integration for workflow automation:
 - Technical analysis ready data formats
 
 To use the Node-RED integration:
-1. Start the Node-RED integration server: `node nodered-integration.js`
+1. Start the Node-RED integration server: `npm run nodered`
 2. Import the example flow from `quantflow-nodered-example.json`
 3. Configure your workflows to consume QuantFlow data
+
+## Testing
+
+Run unit tests:
+```bash
+npm test
+```
+
+Run tests in watch mode:
+```bash
+npm run test:watch
+```
+
+Generate coverage report:
+```bash
+npm run test:coverage
+```
+
+## Performance Optimizations
+
+1. **WebSocket Client**:
+   - Batch processing of price updates
+   - Connection pooling
+   - Exponential backoff with jitter for reconnections
+   - URL rotation for improved reliability
+
+2. **Database**:
+   - Connection pooling with TimescaleDB
+   - Optimized queries with proper indexing
+   - Hypertable implementation for time-series data
+
+3. **Backtesting**:
+   - Transaction cost modeling
+   - Walk-forward analysis
+   - Multiple sophisticated strategies
 
 ## License
 

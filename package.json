@@ -7,10 +7,12 @@
     "start": "node server.js",
     "server": "node server.js",
     "server:tsdb": "STORAGE_TYPE=timescaledb node server-timescaledb.js",
-    "alerts": "node price-alert-system.js",
+    "alerts": "node src/core/price-alert-system.js",
     "dashboard": "node dashboard.js",
-    "nodered": "node nodered-integration.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "nodered": "node src/core/nodered-integration.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "keywords": [
     "quantitative-finance",
@@ -29,5 +31,16 @@
     "nodemailer": "^7.0.6",
     "pg": "^8.16.3",
     "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/**/*.test.js"
+    ]
   }
 }
