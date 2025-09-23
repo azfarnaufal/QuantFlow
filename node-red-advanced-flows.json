@@ -1,0 +1,272 @@
+[
+  {
+    "id": "advanced-crypto-flows",
+    "type": "tab",
+    "label": "Advanced Crypto Tracking",
+    "disabled": false,
+    "info": "Advanced cryptocurrency tracking and alerting flows"
+  },
+  {
+    "id": "price-fetcher",
+    "type": "inject",
+    "z": "advanced-crypto-flows",
+    "name": "Fetch Prices",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "300",
+    "crontab": "",
+    "once": true,
+    "onceDelay": 0.1,
+    "topic": "",
+    "x": 150,
+    "y": 100,
+    "wires": [
+      [
+        "http-request-prices"
+      ]
+    ]
+  },
+  {
+    "id": "http-request-prices",
+    "type": "http request",
+    "z": "advanced-crypto-flows",
+    "name": "Get Crypto Prices",
+    "method": "GET",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "http://localhost:3001/nodered/prices",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "x": 350,
+    "y": 100,
+    "wires": [
+      [
+        "analyze-movements",
+        "store-data"
+      ]
+    ]
+  },
+  {
+    "id": "analyze-movements",
+    "type": "function",
+    "z": "advanced-crypto-flows",
+    "name": "Analyze Movements",
+    "func": "// Analyze price movements and detect significant changes\nconst data = msg.payload.data;\nconst alerts = [];\n\nfor (const [symbol, priceData] of Object.entries(data)) {\n  // Calculate price change from previous data (simplified)\n  // In a real implementation, you would compare with stored historical data\n  \n  // For demo purposes, we'll create alerts for high-value coins\n  if (symbol === 'BTCUSDT' && priceData.price > 100000) {\n    alerts.push({\n      symbol: symbol,\n      price: priceData.price,\n      message: `${symbol} is above $100,000!`\n    });\n  } else if (symbol === 'ETHUSDT' && priceData.price > 4000) {\n    alerts.push({\n      symbol: symbol,\n      price: priceData.price,\n      message: `${symbol} is above $4,000!`\n    });\n  }\n}\n\nif (alerts.length > 0) {\n  msg.payload = alerts;\n  return [msg, null]; // Send to alert flow\n} else {\n  return [null, msg]; // Continue with data storage\n}",
+    "outputs": 2,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 550,
+    "y": 100,
+    "wires": [
+      [
+        "format-alert"
+      ],
+      [
+        "store-data"
+      ]
+    ]
+  },
+  {
+    "id": "format-alert",
+    "type": "function",
+    "z": "advanced-crypto-flows",
+    "name": "Format Alert",
+    "func": "// Format alert message for Telegram\nconst alerts = msg.payload;\n\nlet message = \"🔔 *Crypto Price Alerts*\\n\\n\";\nalerts.forEach(alert => {\n  message += `💰 ${alert.message}\\n`;\n  message += `   Current Price: $${alert.price.toLocaleString()}\\n\\n`;\n});\n\nmessage += `_${new Date().toLocaleString()}_`;\n\nmsg.payload = { text: message };\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 750,
+    "y": 60,
+    "wires": [
+      [
+        "telegram-alert"
+      ]
+    ]
+  },
+  {
+    "id": "telegram-alert",
+    "type": "telegram sender",
+    "z": "advanced-crypto-flows",
+    "name": "Send Telegram Alert",
+    "bot": "",
+    "chatId": "",
+    "sendMethod": "sendMessage",
+    "x": 950,
+    "y": 60,
+    "wires": [
+      [
+        "debug-alert"
+      ]
+    ]
+  },
+  {
+    "id": "store-data",
+    "type": "function",
+    "z": "advanced-crypto-flows",
+    "name": "Prepare for Storage",
+    "func": "// Prepare data for storage in database\nconst data = msg.payload.data;\n\nconst storageData = Object.entries(data).map(([symbol, priceData]) => ({\n  symbol: symbol,\n  price: priceData.price,\n  volume: priceData.volume,\n  timestamp: priceData.timestamp\n}));\n\nmsg.payload = storageData;\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 550,
+    "y": 180,
+    "wires": [
+      [
+        "debug-storage"
+      ]
+    ]
+  },
+  {
+    "id": "debug-alert",
+    "type": "debug",
+    "z": "advanced-crypto-flows",
+    "name": "Alert Debug",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 1150,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "debug-storage",
+    "type": "debug",
+    "z": "advanced-crypto-flows",
+    "name": "Storage Debug",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 750,
+    "y": 180,
+    "wires": []
+  },
+  {
+    "id": "manual-trigger",
+    "type": "inject",
+    "z": "advanced-crypto-flows",
+    "name": "Manual Trigger",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "x": 150,
+    "y": 250,
+    "wires": [
+      [
+        "http-request-prices"
+      ]
+    ]
+  },
+  {
+    "id": "price-history",
+    "type": "inject",
+    "z": "advanced-crypto-flows",
+    "name": "Get BTC History",
+    "props": [
+      {
+        "p": "payload"
+      },
+      {
+        "p": "symbol",
+        "v": "BTCUSDT",
+        "vt": "str"
+      }
+    ],
+    "repeat": "3600",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "x": 160,
+    "y": 350,
+    "wires": [
+      [
+        "http-request-history"
+      ]
+    ]
+  },
+  {
+    "id": "http-request-history",
+    "type": "http request",
+    "z": "advanced-crypto-flows",
+    "name": "Get Price History",
+    "method": "GET",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "http://localhost:3001/nodered/price/${symbol}",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "x": 370,
+    "y": 350,
+    "wires": [
+      [
+        "analyze-trends"
+      ]
+    ]
+  },
+  {
+    "id": "analyze-trends",
+    "type": "function",
+    "z": "advanced-crypto-flows",
+    "name": "Analyze Trends",
+    "func": "// Simple trend analysis\nconst data = msg.payload;\n\n// In a real implementation, you would analyze historical data\n// This is a simplified example\n\nmsg.payload = {\n  symbol: data.symbol,\n  currentPrice: data.price,\n  volume: data.volume,\n  trend: data.price > 50000 ? \"Bullish\" : \"Bearish\",\n  analysis: `Price is ${data.price > 50000 ? 'high' : 'low'} relative to threshold`\n};\n\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 570,
+    "y": 350,
+    "wires": [
+      [
+        "debug-trends"
+      ]
+    ]
+  },
+  {
+    "id": "debug-trends",
+    "type": "debug",
+    "z": "advanced-crypto-flows",
+    "name": "Trend Analysis",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 770,
+    "y": 350,
+    "wires": []
+  }
+]

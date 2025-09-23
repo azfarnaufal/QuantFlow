@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  crypto-price-tracker:
+    build: .
+    container_name: crypto-price-tracker
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - STORAGE_TYPE=timescaledb
+      - TSDB_HOST=timescaledb
+      - TSDB_PORT=5432
+      - TSDB_DATABASE=crypto_prices
+      - TSDB_USER=postgres
+      - TSDB_PASSWORD=postgres
+    volumes:
+      - ./config.json:/app/config.json
+    restart: unless-stopped
+    networks:
+      - crypto-network
+    depends_on:
+      - timescaledb
+
+  crypto-nodered-integration:
+    build: .
+    container_name: crypto-nodered-integration
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./config.json:/app/config.json
+    restart: unless-stopped
+    command: npm run nodered
+    networks:
+      - crypto-network
+    depends_on:
+      - crypto-price-tracker
+
+  node-red:
+    image: nodered/node-red:latest
+    container_name: node-red
+    ports:
+      - "1880:1880"
+    volumes:
+      - node_red_data:/data
+    environment:
+      - NODE_RED_ENABLE_PROJECTS=false
+    restart: unless-stopped
+    networks:
+      - crypto-network
+    depends_on:
+      - crypto-nodered-integration
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: timescaledb
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=crypto_prices
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+      - ./init-timescaledb.sql:/docker-entrypoint-initdb.d/init-timescaledb.sql
+    restart: unless-stopped
+    networks:
+      - crypto-network
+
+networks:
+  crypto-network:
+    driver: bridge
+
+volumes:
+  node_red_data:
+  timescaledb_data:

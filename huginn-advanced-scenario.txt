@@ -1,0 +1,130 @@
+# Advanced Huginn Crypto Price Tracking Scenario
+
+## Overview
+This scenario creates a comprehensive crypto price tracking system with alerts and data storage.
+
+## Agents Configuration
+
+### 1. Website Agent (Price Fetcher)
+Name: Crypto Price Fetcher
+Schedule: Every 5m
+Source URL: http://localhost:3000/prices
+Extractor:
+{
+  "url": "{{url}}",
+  "headers": {
+    "Accept": "application/json"
+  },
+  "mode": "on_change"
+}
+
+### 2. Event Formatting Agent
+Name: Price Event Formatter
+Schedule: Never (event-driven)
+Sources:
+- Crypto Price Fetcher
+Expression:
+const prices = events[0].payload;
+const formattedEvents = [];
+
+for (const [symbol, data] of Object.entries(prices)) {
+  // Check for significant movements
+  if (data.priceChangePercent && Math.abs(data.priceChangePercent) > 3) {
+    formattedEvents.push({
+      symbol: symbol,
+      price: data.price,
+      change: data.priceChangePercent,
+      volume: data.volume,
+      alert: true,
+      message: `${symbol} moved ${data.priceChangePercent.toFixed(2)}% in 24h`
+    });
+  }
+  
+  // Always create a data point for storage
+  formattedEvents.push({
+    symbol: symbol,
+    price: data.price,
+    volume: data.volume,
+    timestamp: data.timestamp,
+    alert: false
+  });
+}
+
+return formattedEvents;
+
+### 3. Data Storage Agent
+Name: Price Data Storage
+Type: PostgreSQL Agent
+Schedule: Never (event-driven)
+Sources:
+- Price Event Formatter
+SQL Statement:
+INSERT INTO crypto_prices (symbol, price, volume, timestamp, alert) 
+VALUES (?, ?, ?, ?, ?)
+
+### 4. Alert Agent
+Name: Price Alert Notifier
+Type: Webhook Agent
+Schedule: Never (event-driven)
+Sources:
+- Price Event Formatter
+Options:
+{
+  "url": "https://api.telegram.org/bot{{TELEGRAM_BOT_TOKEN}}/sendMessage",
+  "method": "post",
+  "payload": {
+    "chat_id": "{{TELEGRAM_CHAT_ID}}",
+    "text": "🔔 *Crypto Alert*\n\n*{{symbol}}* significant movement detected!\n\n💰 Price: ${{price.toLocaleString()}}\n📊 24h Change: {{change.toFixed(2)}}%\n📈 Volume: {{volume.toLocaleString()}}\n\n_{{new Date().toLocaleString()}}_",
+    "parse_mode": "Markdown"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  }
+}
+Conditions:
+{
+  "alert": true
+}
+
+### 5. Data Visualization Agent
+Name: Daily Summary Generator
+Type: Schedule Agent
+Schedule: Every 1d at 00:00
+Expression:
+const yesterday = new Date();
+yesterday.setDate(yesterday.getDate() - 1);
+
+return {
+  date: yesterday.toISOString().split('T')[0],
+  message: "Daily crypto price summary generated"
+};
+
+### 6. Report Generator Agent
+Name: Weekly Report Generator
+Type: Schedule Agent
+Schedule: Every 7d at 09:00
+Expression:
+const weekAgo = new Date();
+weekAgo.setDate(weekAgo.getDate() - 7);
+
+return {
+  period: "weekly",
+  startDate: weekAgo.toISOString().split('T')[0],
+  endDate: new Date().toISOString().split('T')[0],
+  message: "Weekly crypto price report ready"
+};
+
+## Database Schema
+CREATE TABLE crypto_prices (
+  id SERIAL PRIMARY KEY,
+  symbol VARCHAR(20) NOT NULL,
+  price DECIMAL NOT NULL,
+  volume DECIMAL NOT NULL,
+  timestamp TIMESTAMP NOT NULL,
+  alert BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_crypto_prices_symbol ON crypto_prices(symbol);
+CREATE INDEX idx_crypto_prices_timestamp ON crypto_prices(timestamp);
+CREATE INDEX idx_crypto_prices_alert ON crypto_prices(alert);

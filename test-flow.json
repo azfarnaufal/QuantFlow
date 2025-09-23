@@ -1,0 +1,82 @@
+[
+    {
+        "id": "inject-node",
+        "type": "inject",
+        "z": "test-flow",
+        "name": "Trigger",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "10",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 150,
+        "y": 100,
+        "wires": [
+            [
+                "http-request"
+            ]
+        ]
+    },
+    {
+        "id": "http-request",
+        "type": "http request",
+        "z": "test-flow",
+        "name": "Get Crypto Prices",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "http://localhost:3001/nodered/prices",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 350,
+        "y": 100,
+        "wires": [
+            [
+                "function-node"
+            ]
+        ]
+    },
+    {
+        "id": "function-node",
+        "type": "function",
+        "z": "test-flow",
+        "name": "Process Prices",
+        "func": "// Extract and format the price data\nconst prices = msg.payload.data;\n\n// Create a simplified message with key prices\nmsg.payload = {\n    timestamp: msg.payload.timestamp,\n    btc: {\n        price: prices.BTCUSDT.price,\n        volume: prices.BTCUSDT.volume\n    },\n    eth: {\n        price: prices.ETHUSDT.price,\n        volume: prices.ETHUSDT.volume\n    }\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 550,
+        "y": 100,
+        "wires": [
+            [
+                "debug-node"
+            ]
+        ]
+    },
+    {
+        "id": "debug-node",
+        "type": "debug",
+        "z": "test-flow",
+        "name": "Display Results",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 750,
+        "y": 100,
+        "wires": []
+    }
+]

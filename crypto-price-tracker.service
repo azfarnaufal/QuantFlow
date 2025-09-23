@@ -1,0 +1,15 @@
+[Unit]
+Description=Crypto Price Tracker Service
+After=network.target
+
+[Service]
+Type=simple
+User=your-username
+WorkingDirectory=/path/to/crypto-price-tracker
+Environment=STORAGE_TYPE=memory
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

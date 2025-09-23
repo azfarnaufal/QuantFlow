@@ -1,0 +1,90 @@
+[
+    {
+        "id": "binance-price-flow",
+        "type": "tab",
+        "label": "Binance Price Tracker",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "http-request-node",
+        "type": "http request",
+        "z": "binance-price-flow",
+        "name": "Get Binance Prices",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "http://localhost:3001/nodered/prices",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 300,
+        "y": 100,
+        "wires": [
+            [
+                "btc-price-check"
+            ]
+        ]
+    },
+    {
+        "id": "btc-price-check",
+        "type": "function",
+        "z": "binance-price-flow",
+        "name": "Check BTC Price",
+        "func": "if (msg.payload.data.BTCUSDT && msg.payload.data.BTCUSDT.price > 100000) {\n    msg.payload = {\n        text: `BTC price is above $100,000! Current price: $${msg.payload.data.BTCUSDT.price}`\n    };\n    return [msg, null];\n} else {\n    return [null, msg];\n}",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 500,
+        "y": 100,
+        "wires": [
+            [
+                "debug-output"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "debug-output",
+        "type": "debug",
+        "z": "binance-price-flow",
+        "name": "Debug Output",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 700,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "inject-timer",
+        "type": "inject",
+        "z": "binance-price-flow",
+        "name": "Every 5 seconds",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "5",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 100,
+        "y": 100,
+        "wires": [
+            [
+                "http-request-node"
+            ]
+        ]
+    }
+]

@@ -1,0 +1,134 @@
+{
+  "name": "Binance Price Alert Workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "GET",
+        "url": "http://localhost:3000/prices",
+        "options": {}
+      },
+      "name": "Get Binance Prices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [],
+          "string": [
+            {
+              "value1": "={{ $json[\"BTCUSDT\"].price }}",
+              "operation": "larger",
+              "value2": "100000"
+            }
+          ]
+        }
+      },
+      "name": "Check BTC Price",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        750,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "message": "=BTC price is above $100,000! Current price: {{$json[\"BTCUSDT\"].price}}"
+      },
+      "name": "Telegram Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 5,
+              "unit": "minutes"
+            }
+          ]
+        }
+      },
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        250,
+        150
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Get Binance Prices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Binance Prices": {
+      "main": [
+        [
+          {
+            "node": "Check BTC Price",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check BTC Price": {
+      "main": [
+        [
+          {
+            "node": "Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Cron Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Binance Prices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "example"
+}

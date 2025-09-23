@@ -1,0 +1,202 @@
+{
+  "name": "Advanced Crypto Price Tracker",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "url": "http://localhost:3000/prices",
+        "options": {}
+      },
+      "id": "2",
+      "name": "Get Crypto Prices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const prices = items[0].json;\nconst alerts = [];\n\nfor (const [symbol, data] of Object.entries(prices)) {\n  // Check for significant price movements (more than 5% in 24h)\n  if (data.priceChangePercent && Math.abs(data.priceChangePercent) > 5) {\n    alerts.push({\n      symbol: symbol,\n      price: data.price,\n      change: data.priceChangePercent,\n      volume: data.volume,\n      message: `${symbol} has moved ${data.priceChangePercent.toFixed(2)}% in 24h`\n    });\n  }\n}\n\nif (alerts.length > 0) {\n  return alerts.map(alert => ({ json: alert }));\n} else {\n  return [];\n}"
+      },
+      "id": "3",
+      "name": "Analyze Price Movements",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const alert = items[0].json;\n\nconst message = `\n🔔 *Crypto Alert*\n\n*${alert.symbol}* significant movement detected!\n\n💰 Price: $${alert.price.toLocaleString()}\n📊 24h Change: ${alert.change.toFixed(2)}%\n📈 Volume: ${alert.volume.toLocaleString()}\n\n_${new Date().toLocaleString()}_\n`;\n\nreturn [{ json: { message } }];"
+      },
+      "id": "4",
+      "name": "Format Telegram Message",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "=telegramApi",
+        "chatId": "={{ $credentials.telegramApi.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "5",
+      "name": "Send Telegram Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutes": 5
+            }
+          ]
+        }
+      },
+      "id": "6",
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        250,
+        150
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "const prices = items[0].json;\n\n// Transform data for easier processing\nconst transformed = Object.entries(prices).map(([symbol, data]) => ({\n  symbol,\n  price: data.price,\n  volume: data.volume,\n  timestamp: data.timestamp\n}));\n\nreturn transformed.map(item => ({ json: item }));"
+      },
+      "id": "7",
+      "name": "Transform Price Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        450,
+        150
+      ]
+    },
+    {
+      "parameters": {
+        "tableName": "crypto_prices",
+        "columns": "symbol,price,volume,timestamp",
+        "additionalFields": {
+          "mode": "insert"
+        }
+      },
+      "id": "8",
+      "name": "Store in Database",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [
+        650,
+        150
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Get Crypto Prices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Crypto Prices": {
+      "main": [
+        [
+          {
+            "node": "Analyze Price Movements",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Transform Price Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Price Movements": {
+      "main": [
+        [
+          {
+            "node": "Format Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Telegram Message": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 5 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Get Crypto Prices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform Price Data": {
+      "main": [
+        [
+          {
+            "node": "Store in Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

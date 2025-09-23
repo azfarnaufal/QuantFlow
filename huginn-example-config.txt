@@ -1,0 +1,38 @@
+# Huginn Agent Configuration Examples
+
+## 1. HTTP Agent to fetch price data
+
+Name: Binance Price Fetcher
+Type: HttpAgent
+Schedule: every_5m
+URL: http://localhost:3000/prices
+HTTP Method: GET
+Parser: json
+
+## 2. Trigger Agent to check BTC price
+
+Name: BTC Price Checker
+Type: TriggerAgent
+Sources: Binance Price Fetcher
+Rules:
+- path: BTCUSDT.price
+  value: "100000"
+  operator: ">"
+
+## 3. Event Formatting Agent
+
+Name: Price Alert Formatter
+Type: EventFormattingAgent
+Sources: BTC Price Checker
+Instructions:
+  message: "BTC price is above $100,000! Current price: {{BTCUSDT.price}}"
+  timestamp: "{{created_at}}"
+
+## 4. Telegram Agent for notifications
+
+Name: Telegram Price Alert
+Type: TelegramAgent
+Sources: Price Alert Formatter
+Token: YOUR_TELEGRAM_BOT_TOKEN
+Chat ID: YOUR_CHAT_ID
+Message: "{{message}}"

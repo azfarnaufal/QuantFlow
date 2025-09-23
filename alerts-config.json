@@ -1,0 +1,77 @@
+{
+  "telegram": {
+    "botToken": "YOUR_BOT_TOKEN",
+    "chatId": "YOUR_CHAT_ID"
+  },
+  "email": {
+    "smtp": {
+      "host": "smtp.example.com",
+      "port": 587,
+      "secure": false,
+      "auth": {
+        "user": "your-email@example.com",
+        "pass": "your-password"
+      }
+    },
+    "from": "Crypto Tracker <crypto@example.com>",
+    "to": "user@example.com"
+  },
+  "discord": {
+    "webhookUrl": "YOUR_DISCORD_WEBHOOK_URL"
+  },
+  "alerts": [
+    {
+      "symbol": "BTCUSDT",
+      "type": "above",
+      "threshold": 120000,
+      "enabled": true,
+      "channels": ["telegram", "email"]
+    },
+    {
+      "symbol": "BTCUSDT",
+      "type": "below",
+      "threshold": 100000,
+      "enabled": true,
+      "channels": ["telegram", "discord"]
+    },
+    {
+      "symbol": "ETHUSDT",
+      "type": "above",
+      "threshold": 5000,
+      "enabled": true,
+      "channels": ["telegram"]
+    },
+    {
+      "symbol": "ETHUSDT",
+      "type": "below",
+      "threshold": 3000,
+      "enabled": true,
+      "channels": ["email", "discord"]
+    },
+    {
+      "symbol": "BTCUSDT",
+      "type": "indicator",
+      "indicator": "rsi",
+      "condition": "above",
+      "threshold": 70,
+      "enabled": true,
+      "channels": ["telegram"]
+    },
+    {
+      "symbol": "ETHUSDT",
+      "type": "indicator",
+      "indicator": "rsi",
+      "condition": "below",
+      "threshold": 30,
+      "enabled": true,
+      "channels": ["telegram"]
+    }
+  ],
+  "scheduledReports": {
+    "enabled": true,
+    "frequency": "daily",
+    "time": "09:00",
+    "channels": ["email", "telegram"]
+  },
+  "checkInterval": 30000
+}

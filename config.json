@@ -1,0 +1,13 @@
+{
+  "binanceWsUrl": "wss://fstream.binance.com/ws",
+  "symbolsToTrack": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT"
+  ],
+  "serverPort": 3000,
+  "reconnectInterval": 5000,
+  "maxHistoryLength": 100
+}

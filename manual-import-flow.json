@@ -1,0 +1,70 @@
+[
+    {
+        "id": "crypto-test-flow",
+        "type": "tab",
+        "label": "Crypto Price Test",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "inject-node",
+        "type": "inject",
+        "z": "crypto-test-flow",
+        "name": "Start",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "10",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 150,
+        "y": 100,
+        "wires": [
+            [
+                "http-request"
+            ]
+        ]
+    },
+    {
+        "id": "http-request",
+        "type": "http request",
+        "z": "crypto-test-flow",
+        "name": "Get Prices",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "http://localhost:3001/nodered/prices",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 350,
+        "y": 100,
+        "wires": [
+            [
+                "debug-raw"
+            ]
+        ]
+    },
+    {
+        "id": "debug-raw",
+        "type": "debug",
+        "z": "crypto-test-flow",
+        "name": "Raw Data",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 550,
+        "y": 80,
+        "wires": []
+    }
+]
