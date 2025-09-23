@@ -1,10 +1,10 @@
 {
-  "name": "crypto-price-tracker",
+  "name": "quantflow",
   "version": "1.0.0",
-  "description": "Real-time Binance perpetual futures price tracker",
-  "main": "index.js",
+  "description": "Quantitative trading platform with real-time market data, ML predictions, and backtesting engine",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node server.js",
     "server": "node server.js",
     "server:tsdb": "STORAGE_TYPE=timescaledb node server-timescaledb.js",
     "alerts": "node price-alert-system.js",
@@ -13,12 +13,15 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
+    "quantitative-finance",
+    "trading",
+    "machine-learning",
+    "backtesting",
     "binance",
     "cryptocurrency",
-    "websocket",
-    "price-tracker"
+    "websocket"
   ],
-  "author": "",
+  "author": "Azfar Naufal",
   "license": "ISC",
   "dependencies": {
     "axios": "^1.12.2",
