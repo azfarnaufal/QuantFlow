@@ -1,29 +1,20 @@
-# Dockerfile for Crypto Price Tracker
-FROM node:18-alpine
+# Use Node.js 18 as the base image
+FROM node:18
 
-# Set working directory
+# Set the working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package.json and package-lock.json (if available)
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci
 
-# Copy application code
+# Copy the rest of the application code
 COPY . .
 
-# Expose port
+# Expose the port the app runs on
 EXPOSE 3000
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
-USER nextjs
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node healthcheck.js
-
-# Start the application
-CMD ["npm", "run", "server"]
+# Command to run the application
+CMD ["node", "server.js"]
