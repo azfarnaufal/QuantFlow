@@ -1,247 +1,206 @@
-# QuantFlow - Quantitative Trading Platform
+# QuantFlow - Advanced Quantitative Trading Platform
 
-QuantFlow is a comprehensive quantitative trading platform that provides real-time market data ingestion, machine learning predictions, sophisticated backtesting capabilities, and automated trading workflows. Built for cryptocurrency markets with a focus on Binance Perpetual Futures.
+[![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D14.0.0-brightgreen.svg)](https://nodejs.org/)
+[![Docker](https://img.shields.io/badge/docker-supported-blue.svg)](https://www.docker.com/)
 
-## 🚀 Key Features
+QuantFlow is a comprehensive quantitative trading platform that provides real-time market data ingestion, advanced technical analysis, machine learning-based strategy development, and sophisticated backtesting capabilities for cryptocurrency trading.
 
-### Real-time Market Data
-- **Binance Perpetual Futures Integration**: WebSocket client for real-time price and volume data
-- **Multiple Symbol Tracking**: Simultaneously track BTCUSDT, ETHUSDT, and other major pairs
-- **High Performance**: Optimized WebSocket client with automatic reconnection and error handling
+## Features
 
-### Data Storage & Management
-- **TimescaleDB Integration**: PostgreSQL-based time-series database for efficient data storage
-- **Database Connection Pooling**: Optimized database connections for better performance
-- **Redis Caching**: In-memory caching for frequently accessed data to reduce database load
+### Real-Time Market Data
+- **Binance WebSocket Integration**: Connects to Binance Futures WebSocket API for real-time price updates
+- **Multi-Symbol Tracking**: Simultaneously tracks multiple cryptocurrency pairs
+- **High-Performance Ingestion**: Optimized WebSocket client with batch processing and automatic reconnection
 
-### Advanced Analytics
-- **Technical Indicators**: Comprehensive library including RSI, MACD, SMA, EMA, and Bollinger Bands
-- **Machine Learning Predictions**: Simple ML models for price forecasting
-- **Real-time Calculations**: On-the-fly technical indicator computation
+### Data Storage & Performance
+- **TimescaleDB Integration**: Persistent storage with time-series optimized database
+- **Redis Caching**: In-memory caching for frequently accessed data
+- **Database Connection Pooling**: Efficient database connection management
+- **Rate Limiting**: API rate limiting to prevent abuse
 
-### Sophisticated Backtesting Engine
-- **Multiple Strategies**: 8+ built-in strategies including Moving Average, RSI, MACD, and Bollinger Bands
-- **Enhanced Strategies**: Machine Learning and Portfolio strategies for advanced backtesting
-- **Performance Metrics**: Comprehensive metrics including Sharpe ratio, max drawdown, and volatility
-- **Walk-forward Analysis**: Robust strategy validation with rolling window testing
-- **Strategy Comparison**: Side-by-side strategy performance evaluation
+### Technical Analysis
+- **Real-Time Indicators**: Calculate technical indicators (RSI, MACD, SMA, EMA, Bollinger Bands)
+- **OHLC Data**: Time-based aggregation for charting
+- **Historical Data Import**: Import historical price data for backtesting
+
+### Machine Learning & AI
+- **ML-Based Strategies**: Machine learning strategies for price prediction
+- **Portfolio Strategies**: Multi-asset portfolio backtesting
+- **Strategy Optimization**: Parameter optimization using historical data
+
+### Backtesting Engine
+- **Multiple Strategies**: Support for various trading strategies
+- **Performance Metrics**: Comprehensive performance analysis (Sharpe ratio, max drawdown, etc.)
 - **Transaction Cost Modeling**: Realistic backtesting with transaction costs
-- **Strategy Optimization**: Parameter tuning capabilities
 
-### Risk Management & Alerts
-- **Multi-channel Notifications**: Telegram, Discord, and Email alerting system
-- **Custom Alert Rules**: Configurable price and indicator-based alerts
-- **Watchlist Management**: Track specific assets and conditions
+### Visualization & Monitoring
+- **Data Visualization Endpoints**: OHLC data for charting
+- **Swagger API Documentation**: Interactive API documentation
+- **Health Checks**: Comprehensive service health monitoring
+- **Prometheus & Grafana**: Monitoring and alerting
 
-### Workflow Automation
-- **Node-RED Integration**: Visual workflow designer for complex automation
-- **n8n Workflows**: Pre-built workflow templates for common tasks
-- **Huginn Scenarios**: Advanced web automation and data processing
+### Alerting System
+- **Multi-Channel Notifications**: Telegram, Discord, and Email notifications
+- **Custom Alert Conditions**: Flexible alert rule configuration
+- **Pattern-Based Alerts**: Alerts based on technical indicator patterns
 
 ### Containerization & Deployment
-- **Docker Support**: Containerized deployment for easy setup and scaling
-- **Multi-container Architecture**: Separate services for database, caching, and application
-- **Docker Compose**: Single-command deployment of the entire stack
-- **Kubernetes Support**: Production-ready Kubernetes deployment configurations
-- **Health Monitoring**: Comprehensive health checks for all services
-- **Prometheus & Grafana**: Monitoring and visualization stack
-- **Automated Backups**: Scheduled backup solutions for data protection
+- **Docker Support**: Containerized deployment with Docker Compose
+- **Kubernetes Deployment**: Production-ready Kubernetes configurations
+- **Automated Backups**: Scheduled database backups
+- **Microservices Architecture**: Scalable microservices design
 
-## 📊 Performance Optimizations
+## Architecture
 
-- **Redis Caching**: Frequently accessed data cached for faster retrieval
-- **Database Connection Pooling**: Efficient database connection management
-- **WebSocket Message Batching**: Batch processing for improved throughput
-- **API Rate Limiting**: Prevent abuse and ensure fair resource usage
-- **Health Check Endpoints**: Monitor system status and performance
+QuantFlow follows a microservices architecture with the following components:
 
-## 🛠️ Technology Stack
+1. **Price Ingestion Service**: Handles real-time data from Binance WebSocket
+2. **Storage Service**: Manages data persistence in TimescaleDB with Redis caching
+3. **Backtesting Service**: Executes trading strategy backtests and optimizations
+4. **Alerting Service**: Monitors market conditions and sends notifications
+5. **API Gateway**: Provides unified access to all services
 
-- **Node.js**: Server-side JavaScript runtime
-- **Express.js**: Web framework for REST API
-- **WebSocket**: Real-time data streaming
-- **TimescaleDB**: Time-series database (PostgreSQL extension)
-- **Redis**: In-memory data structure store
-- **Node-RED**: Visual tool for wiring together hardware devices, APIs and online services
-- **n8n**: Extendable workflow automation tool
-- **Huginn**: Agent-based automation tool
-- **Docker**: Containerization platform
-- **Kubernetes**: Container orchestration platform
-- **Prometheus**: Monitoring and alerting toolkit
-- **Grafana**: Analytics and monitoring platform
-
-## 🚀 Quick Start
+## Getting Started
 
 ### Prerequisites
-- Docker and Docker Compose
-- Node.js (v14 or higher)
-- npm (v6 or higher)
+- Node.js >= 14.0.0
+- Docker and Docker Compose (optional but recommended)
+- PostgreSQL/TimescaleDB
+- Redis
 
 ### Installation
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/azfarnaufal/QuantFlow.git
-cd QuantFlow
+git clone https://github.com/your-username/quantflow.git
+cd quantflow
 ```
 
-2. Start the services:
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Configure environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
+
+4. Start the application:
+```bash
+npm start
+```
+
+### Docker Deployment
+
+1. Build and start services:
 ```bash
 docker-compose up -d
 ```
 
-3. Access the services:
-- Main API: http://localhost:3000
-- Node-RED: http://localhost:1880
-- TimescaleDB: postgresql://localhost:5432
-- Grafana: http://localhost:3001 (admin/admin)
-- Prometheus: http://localhost:9090
+2. Access the application at `http://localhost:3000`
 
-### API Endpoints
+### Kubernetes Deployment
 
-#### Market Data
+1. Apply Kubernetes configurations:
+```bash
+kubectl apply -f kubernetes/
+```
+
+## API Documentation
+
+QuantFlow provides comprehensive API documentation through Swagger UI. Access it at:
+```
+http://localhost:3000/api-docs
+```
+
+### Key Endpoints
+
 - `GET /prices` - Get latest prices for all tracked symbols
-- `GET /price/:symbol` - Get latest price for a specific symbol
-- `GET /history/:symbol` - Get price history for a symbol
-- `GET /api/chart/ohlc/:symbol` - Get OHLC data for candlestick charts
-- `GET /api/chart/timeseries/:symbol` - Get time series data for line charts
+- `GET /price/{symbol}` - Get latest price for a specific symbol
+- `GET /history/{symbol}` - Get price history for a symbol
+- `GET /indicators/{symbol}` - Get technical indicators for a symbol
+- `GET /chart/ohlc/{symbol}` - Get OHLC data for charting
+- `GET /backtest/strategies` - Get available backtesting strategies
+- `POST /backtest/run` - Run a backtest
+- `POST /backtest/optimize` - Optimize strategy parameters
+- `POST /data/import` - Import historical price data
 
-#### Backtesting
-- `GET /backtest/strategies` - List available backtesting strategies
-- `POST /backtest/run` - Run a backtest simulation
+## Configuration
 
-#### Health Check
-- `GET /health` - System health status
-- `GET /health/detailed` - Detailed system health information
-- `GET /health/aggregate` - Aggregated health check for all services
-- `GET /metrics` - Prometheus metrics endpoint
+The application can be configured through:
+1. Environment variables
+2. Configuration files in `src/config/`
+3. Command-line arguments
 
-#### Documentation
-- `GET /api-docs` - Swagger API documentation
+Key configuration options include:
+- Binance WebSocket URL
+- Database connection settings
+- Redis connection settings
+- Symbols to track
+- Rate limiting parameters
 
-## 📈 Backtesting Strategies
+## Development
 
-QuantFlow includes several built-in backtesting strategies:
+### Project Structure
+```
+quantflow/
+├── src/
+│   ├── core/          # Core components (WebSocket client, storage)
+│   ├── strategies/    # Trading strategies
+│   ├── backtesting/   # Backtesting engine
+│   ├── storage/       # Data storage implementations
+│   ├── utils/         # Utility functions
+│   └── config/        # Configuration files
+├── docs/              # Documentation
+├── examples/          # Example implementations
+├── tests/             # Unit and integration tests
+└── kubernetes/        # Kubernetes deployment files
+```
 
-1. **Moving Average Crossover**: Traditional SMA crossover strategy
-2. **RSI Reversal**: Mean reversion strategy based on RSI
-3. **MACD Crossover**: Moving Average Convergence Divergence strategy
-4. **Bollinger Bands**: Volatility-based trading strategy
-5. **Momentum Strategy**: Trend-following strategy based on price momentum
-6. **Mean Reversion Strategy**: Statistical arbitrage strategy
-7. **Machine Learning Strategy**: ML-based prediction strategy
-8. **Portfolio Strategy**: Multi-asset portfolio optimization strategy
+### Running Tests
 
-## 🎯 Advanced Features
-
-### Performance Optimizations
-- Redis caching for frequently accessed data
-- Database connection pooling
-- WebSocket message batching
-- API rate limiting
-- Health monitoring endpoints
-
-### Containerization
-- Multi-container Docker architecture
-- Persistent data volumes
-- Network isolation
-- Restart policies
-- Kubernetes deployment configurations
-- Health checks for all services
-- Monitoring with Prometheus and Grafana
-- Automated backup solutions
-
-### Workflow Automation
-- Node-RED visual programming interface
-- Pre-built n8n workflows
-- Huginn scenario templates
-- API integration examples
-- Node-RED flow examples
-
-### Data Processing
-- Real-time technical indicators calculation
-- Machine learning model integration
-- Data visualization endpoints
-- Historical data import functionality
-
-### Microservices Architecture (Planned)
-- Price ingestion service
-- Storage service
-- Backtesting service
-- Alerting service
-- API gateway
-- Node-RED service
-
-## 📚 Documentation
-
-Detailed documentation is available in the [docs](./docs) directory:
-
-### Core Documentation
-- [Getting Started Guide](./docs/GETTING-STARTED.md)
-- [Architecture Summary](./docs/architecture-summary.md)
-- [Performance Optimizations](./docs/performance-optimizations.md)
-- [Backtesting Enhancements](./docs/backtesting-enhancements.md)
-
-### Strategy Documentation
-- [ML Strategy](./docs/strategies/ml-strategy.md)
-- [Portfolio Strategy](./docs/strategies/portfolio-strategy.md)
-
-### Integration Guides
-- [Node-RED Integration](./docs/NODE-RED-INTEGRATION.md)
-- [Deployment Guide](./docs/FINAL-SUMMARY.md)
-
-### Advanced Topics
-- [Strategy Development Guide](./docs/guides/strategy-development.md)
-- [Deployment Guide for Cloud Platforms](./docs/guides/deployment.md)
-- [Microservices Architecture](./docs/architecture/microservices.md)
-- [Real-time Technical Indicators](./docs/data-processing/technical-indicators.md)
-- [Machine Learning Integration](./docs/data-processing/ml-integration.md)
-- [Data Visualization Endpoints](./docs/data-processing/data-visualization.md)
-- [Historical Data Import](./docs/data-processing/historical-data-import.md)
-- [Kubernetes Deployment](./docs/containerization/kubernetes.md)
-- [Health Checks for All Services](./docs/containerization/health-checks.md)
-- [Monitoring with Prometheus and Grafana](./docs/containerization/monitoring.md)
-- [Automated Backup Solutions](./docs/containerization/backup.md)
-
-### Examples
-- [Node-RED Flow Examples](./examples/nodered/)
-
-## 🧪 Testing
-
-Run the test suite:
 ```bash
 npm test
 ```
 
-Run specific tests:
+### Code Quality
+
 ```bash
-node tests/test-backtesting.js
-node tests/test-ml-strategy.js
-node tests/test-redis-cache.js
+npm run lint
 ```
 
-## 🤝 Contributing
+## Monitoring & Observability
+
+### Health Checks
+- `GET /health` - Basic health check
+- `GET /health/detailed` - Detailed health information
+
+### Metrics
+- Prometheus metrics endpoint at `/metrics`
+- Grafana dashboards for visualization
+
+### Logging
+- Structured logging with log levels
+- Log aggregation support
+
+## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a pull request
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the ISC License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- Binance for providing excellent API documentation
-- TimescaleDB for time-series database optimization
-- Redis for in-memory data storage
-- Node-RED community for workflow automation tools
-- n8n team for workflow automation platform
-- Huginn community for agent-based automation
-- Prometheus and Grafana communities for monitoring tools
-
-## 📞 Support
-
-For support, please open an issue on GitHub or contact the maintainers.
+- Binance for providing the WebSocket API
+- TimescaleDB for time-series database capabilities
+- Redis for caching solutions
+- The open-source community for various libraries and tools

@@ -5,7 +5,7 @@ const swaggerUi = require('swagger-ui-express');
 const BinancePerpetualPriceTracker = require('./src/core/binance-ws-client');
 const fs = require('fs');
 
-// Load Swagger specs
+// Load Swagger configuration
 const swaggerSpecs = require('./src/config/swagger');
 
 // Load config file
@@ -77,6 +77,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Swagger documentation endpoint
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
+// Redirect root to Swagger UI
+app.get('/', (req, res) => {
+  res.redirect('/api-docs');
+});
+
 // Create price tracker instance with TimescaleDB storage
 const priceTracker = new BinancePerpetualPriceTracker('timescaledb');
 
@@ -85,27 +90,9 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-/**
- * @swagger
- * /prices:
- *   get:
- *     summary: Get latest prices for all tracked symbols
- *     description: Returns the latest price data for all cryptocurrency symbols being tracked
- *     responses:
- *       200:
- *         description: A JSON object containing price data for all symbols
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               example:
- *                 BTCUSDT:
- *                   price: 45000.00
- *                   volume: 1000.50
- *                   timestamp: '2023-01-01T00:00:00.000Z'
- *       500:
- *         description: Internal server error
- */
+// API Routes
+
+// Market Data Endpoints
 app.get('/prices', async (req, res) => {
   try {
     const summary = await priceTracker.getSummary();
@@ -118,10 +105,10 @@ app.get('/prices', async (req, res) => {
 
 /**
  * @swagger
- * /price/{symbol}:
+ * /indicators/{symbol}:
  *   get:
- *     summary: Get latest price for a specific symbol
- *     description: Returns the latest price data for a specific cryptocurrency symbol
+ *     summary: Get real-time technical indicators for a symbol
+ *     description: Returns calculated technical indicators for a specific cryptocurrency symbol
  *     parameters:
  *       - in: path
  *         name: symbol
@@ -131,26 +118,55 @@ app.get('/prices', async (req, res) => {
  *           type: string
  *     responses:
  *       200:
- *         description: Price data for the specified symbol
+ *         description: Technical indicators for the specified symbol
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 time:
- *                   type: string
- *                   format: date-time
  *                 symbol:
  *                   type: string
- *                 price:
- *                   type: number
- *                 volume:
- *                   type: number
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                 indicators:
+ *                   type: object
  *       404:
  *         description: Symbol not found
  *       500:
  *         description: Internal server error
  */
+app.get('/indicators/:symbol', async (req, res) => {
+  try {
+    const symbol = req.params.symbol.toUpperCase();
+    
+    // Import technical indicators module
+    const TechnicalIndicators = require('./src/utils/technical-indicators');
+    
+    // Get historical data for indicator calculation
+    const history = await priceTracker.getPriceHistory(symbol, 100); // Get last 100 data points
+    
+    if (history.length === 0) {
+      return res.status(404).json({ error: `No data found for symbol ${symbol}` });
+    }
+    
+    // Convert history to price array
+    const prices = history.map(item => parseFloat(item.price)).reverse(); // Reverse to chronological order
+    
+    // Calculate all indicators
+    const indicators = TechnicalIndicators.calculateAllIndicators(prices);
+    
+    res.json({
+      symbol,
+      timestamp: new Date().toISOString(),
+      indicators
+    });
+  } catch (error) {
+    console.error('Error calculating indicators:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.get('/price/:symbol', async (req, res) => {
   try {
     const symbol = req.params.symbol.toUpperCase();
@@ -167,50 +183,6 @@ app.get('/price/:symbol', async (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /history/{symbol}:
- *   get:
- *     summary: Get price history for a specific symbol
- *     description: Returns historical price data for a specific cryptocurrency symbol
- *     parameters:
- *       - in: path
- *         name: symbol
- *         required: true
- *         description: Cryptocurrency symbol (e.g., BTCUSDT)
- *         schema:
- *           type: string
- *       - in: query
- *         name: limit
- *         required: false
- *         description: Number of records to return (default 100)
- *         schema:
- *           type: integer
- *           minimum: 1
- *           maximum: 1000
- *           default: 100
- *     responses:
- *       200:
- *         description: Historical price data for the specified symbol
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   time:
- *                     type: string
- *                     format: date-time
- *                   symbol:
- *                     type: string
- *                   price:
- *                     type: number
- *                   volume:
- *                     type: number
- *       500:
- *         description: Internal server error
- */
 app.get('/history/:symbol', async (req, res) => {
   try {
     const symbol = req.params.symbol.toUpperCase();
@@ -225,13 +197,29 @@ app.get('/history/:symbol', async (req, res) => {
 
 /**
  * @swagger
- * /backtest/strategies:
+ * /chart/ohlc/{symbol}:
  *   get:
- *     summary: Get available backtesting strategies
- *     description: Returns a list of all available backtesting strategies
+ *     summary: Get OHLC data for charting
+ *     description: Returns OHLC (Open, High, Low, Close) data for a specific cryptocurrency symbol
+ *     parameters:
+ *       - in: path
+ *         name: symbol
+ *         required: true
+ *         description: Cryptocurrency symbol (e.g., BTCUSDT)
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: hours
+ *         required: false
+ *         description: Number of hours of data to retrieve (default 24)
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 168
+ *           default: 24
  *     responses:
  *       200:
- *         description: List of available strategies
+ *         description: OHLC data for charting
  *         content:
  *           application/json:
  *             schema:
@@ -239,13 +227,124 @@ app.get('/history/:symbol', async (req, res) => {
  *               items:
  *                 type: object
  *                 properties:
- *                   id:
+ *                   bucket:
  *                     type: string
- *                   name:
- *                     type: string
+ *                     format: date-time
+ *                   open:
+ *                     type: number
+ *                   high:
+ *                     type: number
+ *                   low:
+ *                     type: number
+ *                   close:
+ *                     type: number
+ *                   volume:
+ *                     type: number
  *       500:
  *         description: Internal server error
  */
+app.get('/chart/ohlc/:symbol', async (req, res) => {
+  try {
+    const symbol = req.params.symbol.toUpperCase();
+    const hours = parseInt(req.query.hours) || 24;
+    
+    // Get OHLC data from storage
+    const ohlcData = await priceTracker.storage.getOHLCData(symbol, hours);
+    res.json(ohlcData);
+  } catch (error) {
+    console.error('Error getting OHLC data:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Backtesting Engine Routes
+
+/**
+ * @swagger
+ * /data/import:
+ *   post:
+ *     summary: Import historical price data
+ *     description: Import historical price data for a specific symbol
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               symbol:
+ *                 type: string
+ *                 description: Cryptocurrency symbol (e.g., BTCUSDT)
+ *               data:
+ *                 type: array
+ *                 description: Array of price data objects
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     timestamp:
+ *                       type: string
+ *                       format: date-time
+ *                     price:
+ *                       type: number
+ *                     volume:
+ *                       type: number
+ *             required:
+ *               - symbol
+ *               - data
+ *     responses:
+ *       200:
+ *         description: Data import successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 imported:
+ *                   type: integer
+ *                 symbol:
+ *                   type: string
+ *       400:
+ *         description: Missing required parameters
+ *       500:
+ *         description: Internal server error
+ */
+app.post('/data/import', async (req, res) => {
+  try {
+    const { symbol, data } = req.body;
+    
+    // Validate input
+    if (!symbol || !data || !Array.isArray(data)) {
+      return res.status(400).json({ error: 'Missing required parameters: symbol and data array' });
+    }
+    
+    // Import data
+    let importedCount = 0;
+    for (const item of data) {
+      try {
+        await priceTracker.storage.storePriceData(symbol, {
+          timestamp: new Date(item.timestamp),
+          price: parseFloat(item.price),
+          volume: parseFloat(item.volume)
+        });
+        importedCount++;
+      } catch (error) {
+        console.error(`Error importing data point:`, error);
+        // Continue with other data points
+      }
+    }
+    
+    res.json({
+      imported: importedCount,
+      symbol,
+      message: `Successfully imported ${importedCount} data points for ${symbol}`
+    });
+  } catch (error) {
+    console.error('Error importing data:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Backtesting Engine Routes
 app.get('/backtest/strategies', (req, res) => {
   const strategies = [
     { id: 'moving_average', name: 'Moving Average Crossover' },
@@ -257,90 +356,18 @@ app.get('/backtest/strategies', (req, res) => {
     { id: 'ml_strategy', name: 'Machine Learning Strategy' },
     { id: 'portfolio_strategy', name: 'Portfolio Strategy' }
   ];
-  res.json(strategies);
+  
+  const features = {
+    optimization: {
+      endpoint: '/backtest/optimize',
+      description: 'Parameter optimization for trading strategies',
+      supportedStrategies: ['ml_strategy', 'portfolio_strategy']
+    }
+  };
+  
+  res.json({ strategies, features });
 });
 
-/**
- * @swagger
- * /backtest/run:
- *   post:
- *     summary: Run a backtest
- *     description: Execute a backtest for a specific symbol using the specified strategy
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               symbol:
- *                 type: string
- *                 description: Cryptocurrency symbol to backtest
- *               strategy:
- *                 type: string
- *                 description: Strategy to use for backtesting
- *               startDate:
- *                 type: string
- *                 format: date-time
- *                 description: Start date for backtesting period
- *               endDate:
- *                 type: string
- *                 format: date-time
- *                 description: End date for backtesting period
- *               initialCapital:
- *                 type: number
- *                 description: Initial capital for backtest (default 10000)
- *               options:
- *                 type: object
- *                 description: Strategy-specific options
- *             required:
- *               - symbol
- *               - strategy
- *               - startDate
- *               - endDate
- *     responses:
- *       200:
- *         description: Backtest results
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 symbol:
- *                   type: string
- *                 strategy:
- *                   type: string
- *                 startDate:
- *                   type: string
- *                   format: date-time
- *                 endDate:
- *                   type: string
- *                   format: date-time
- *                 initialCapital:
- *                   type: number
- *                 finalCapital:
- *                   type: number
- *                 totalReturn:
- *                   type: number
- *                 totalTrades:
- *                   type: integer
- *                 winningTrades:
- *                   type: integer
- *                 losingTrades:
- *                   type: integer
- *                 winRate:
- *                   type: number
- *                 maxDrawdown:
- *                   type: number
- *                 sharpeRatio:
- *                   type: number
- *                 options:
- *                   type: object
- *       400:
- *         description: Missing required parameters
- *       500:
- *         description: Internal server error
- */
 app.post('/backtest/run', async (req, res) => {
   try {
     const { symbol, strategy, startDate, endDate, initialCapital, options } = req.body;
@@ -350,28 +377,172 @@ app.post('/backtest/run', async (req, res) => {
       return res.status(400).json({ error: 'Missing required parameters' });
     }
     
-    // For now, we'll return mock results
-    // In a real implementation, this would run the actual backtest
-    const mockResults = {
+    // Import strategies
+    const MLStrategy = require('./src/strategies/ml-strategy');
+    const PortfolioStrategy = require('./src/strategies/portfolio-strategy');
+    
+    // Create strategy instance based on request
+    let StrategyClass;
+    switch (strategy) {
+      case 'ml_strategy':
+        StrategyClass = MLStrategy;
+        break;
+      case 'portfolio_strategy':
+        StrategyClass = PortfolioStrategy;
+        break;
+      default:
+        return res.status(400).json({ error: `Unsupported strategy: ${strategy}` });
+    }
+    
+    // Get historical data for backtesting
+    const history = await priceTracker.getPriceHistory(symbol, 1000); // Get last 1000 data points
+    
+    if (history.length === 0) {
+      return res.status(404).json({ error: `No historical data found for symbol ${symbol}` });
+    }
+    
+    // Convert history to price array
+    const prices = history.map(item => parseFloat(item.price)).reverse(); // Reverse to chronological order
+    
+    // Create strategy instance
+    const strategyInstance = new StrategyClass(options);
+    
+    // Run backtest
+    let results;
+    if (strategy === 'portfolio_strategy') {
+      // For portfolio strategy, we need multi-asset data
+      const multiAssetData = {};
+      multiAssetData[symbol] = prices;
+      results = strategyInstance.generateBacktest(multiAssetData);
+    } else {
+      // For single asset strategies
+      results = strategyInstance.generateSignals(prices);
+    }
+    
+    // Calculate performance metrics
+    const backtestResults = {
       symbol,
       strategy,
       startDate,
       endDate,
       initialCapital: initialCapital || 10000,
-      finalCapital: 12500,
-      totalReturn: 0.25,
-      totalTrades: 42,
-      winningTrades: 28,
-      losingTrades: 14,
-      winRate: 0.6667,
-      maxDrawdown: 0.12,
-      sharpeRatio: 1.8,
-      options: options || {}
+      options: options || {},
+      results: results
     };
     
-    res.json(mockResults);
+    res.json(backtestResults);
   } catch (error) {
     console.error('Error running backtest:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /backtest/optimize:
+ *   post:
+ *     summary: Optimize strategy parameters
+ *     description: Find optimal parameters for a trading strategy using historical data
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               symbol:
+ *                 type: string
+ *                 description: Cryptocurrency symbol to optimize strategy for
+ *               strategy:
+ *                 type: string
+ *                 description: Strategy to optimize
+ *               parameterRanges:
+ *                 type: object
+ *                 description: Parameter ranges to optimize
+ *               objective:
+ *                 type: string
+ *                 description: Optimization objective (return, sharpe, drawdown)
+ *                 default: sharpe
+ *               maxIterations:
+ *                 type: integer
+ *                 description: Maximum number of optimization iterations
+ *                 default: 100
+ *             required:
+ *               - symbol
+ *               - strategy
+ *               - parameterRanges
+ *     responses:
+ *       200:
+ *         description: Optimization results
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 bestParameters:
+ *                   type: object
+ *                 bestMetrics:
+ *                   type: object
+ *                 allResults:
+ *                   type: array
+ *       400:
+ *         description: Missing required parameters
+ *       500:
+ *         description: Internal server error
+ */
+app.post('/backtest/optimize', async (req, res) => {
+  try {
+    const { symbol, strategy, parameterRanges, objective, maxIterations } = req.body;
+    
+    // Validate input
+    if (!symbol || !strategy || !parameterRanges) {
+      return res.status(400).json({ error: 'Missing required parameters' });
+    }
+    
+    // Import strategies and optimizer
+    const MLStrategy = require('./src/strategies/ml-strategy');
+    const PortfolioStrategy = require('./src/strategies/portfolio-strategy');
+    const StrategyOptimizer = require('./src/strategies/strategy-optimizer');
+    
+    // Create strategy instance based on request
+    let StrategyClass;
+    switch (strategy) {
+      case 'ml_strategy':
+        StrategyClass = MLStrategy;
+        break;
+      case 'portfolio_strategy':
+        StrategyClass = PortfolioStrategy;
+        break;
+      default:
+        return res.status(400).json({ error: `Unsupported strategy: ${strategy}` });
+    }
+    
+    // Get historical data for optimization
+    const history = await priceTracker.getPriceHistory(symbol, 1000); // Get last 1000 data points
+    
+    if (history.length === 0) {
+      return res.status(404).json({ error: `No historical data found for symbol ${symbol}` });
+    }
+    
+    // Convert history to price array
+    const prices = history.map(item => parseFloat(item.price)).reverse(); // Reverse to chronological order
+    
+    // Create strategy instance with default parameters
+    const strategyInstance = new StrategyClass();
+    
+    // Create data object for optimizer
+    const data = {};
+    data[symbol] = prices;
+    
+    // Create optimizer
+    const optimizer = new StrategyOptimizer(strategyInstance, data, parameterRanges);
+    
+    // Run optimization
+    const optimizationResults = await optimizer.optimize(objective, maxIterations);
+    
+    res.json(optimizationResults);
+  } catch (error) {
+    console.error('Error running optimization:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -379,7 +550,6 @@ app.post('/backtest/run', async (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`QuantFlow server running at http://localhost:${PORT}`);
-  console.log(`Swagger UI available at http://localhost:${PORT}/api-docs`);
   
   // Connect to Binance WebSocket
   priceTracker.connect();
