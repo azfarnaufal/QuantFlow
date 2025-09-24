@@ -42,6 +42,14 @@ class RedisCache {
     this.isConnected = false;
     this.cacheTTL = config.redisCacheTTL || 30; // Default to 30 seconds
     
+    // Performance statistics
+    this.stats = {
+      hits: 0,
+      misses: 0,
+      sets: 0,
+      deletes: 0
+    };
+    
     // Initialize Redis client
     this.init();
   }
@@ -88,7 +96,13 @@ class RedisCache {
 
     try {
       const data = await this.client.get(key);
-      return data ? JSON.parse(data) : null;
+      if (data) {
+        this.stats.hits++;
+        return JSON.parse(data);
+      } else {
+        this.stats.misses++;
+        return null;
+      }
     } catch (error) {
       console.error('Error getting data from Redis cache:', error);
       return null;
@@ -108,6 +122,7 @@ class RedisCache {
 
     try {
       await this.client.setEx(key, ttl, JSON.stringify(value));
+      this.stats.sets++;
     } catch (error) {
       console.error('Error setting data in Redis cache:', error);
     }
@@ -124,6 +139,7 @@ class RedisCache {
 
     try {
       await this.client.del(key);
+      this.stats.deletes++;
     } catch (error) {
       console.error('Error deleting data from Redis cache:', error);
     }
@@ -139,9 +155,34 @@ class RedisCache {
 
     try {
       await this.client.flushAll();
+      // Reset statistics
+      this.stats = {
+        hits: 0,
+        misses: 0,
+        sets: 0,
+        deletes: 0
+      };
     } catch (error) {
       console.error('Error flushing Redis cache:', error);
     }
+  }
+
+  /**
+   * Get cache statistics
+   * @returns {Object} Cache statistics
+   */
+  getStats() {
+    const totalRequests = this.stats.hits + this.stats.misses;
+    const hitRate = totalRequests > 0 ? (this.stats.hits / totalRequests) * 100 : 0;
+    
+    return {
+      hits: this.stats.hits,
+      misses: this.stats.misses,
+      sets: this.stats.sets,
+      deletes: this.stats.deletes,
+      totalRequests,
+      hitRate: hitRate.toFixed(2) + '%'
+    };
   }
 
   /**

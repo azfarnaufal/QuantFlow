@@ -1,290 +1,368 @@
 const WebSocket = require('ws');
-const StorageFactory = require('../storage/storage-factory');
-const fs = require('fs');
-const path = require('path');
+const { performance } = require('perf_hooks');
+const https = require('https');
+const dns = require('dns');
 
-// Load config file
-let config;
-try {
-  // Try to load from src/config directory first (for development)
-  const configPath = path.join(__dirname, '../config/config.json');
-  if (fs.existsSync(configPath)) {
-    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  } else {
-    // Fallback to root directory (for Docker)
-    const rootConfigPath = path.join(__dirname, '../../config.json');
-    if (fs.existsSync(rootConfigPath)) {
-      config = JSON.parse(fs.readFileSync(rootConfigPath, 'utf8'));
-    } else {
-      // Final fallback to src/config directory with absolute path
-      const absoluteConfigPath = path.join(process.cwd(), 'src/config/config.json');
-      config = JSON.parse(fs.readFileSync(absoluteConfigPath, 'utf8'));
-    }
-  }
-} catch (error) {
-  console.error('Error loading config file:', error);
-  // Use default config if file cannot be loaded
-  config = {
-    binanceWsUrl: 'wss://fstream.binance.com/ws',
-    symbolsToTrack: ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT'],
-    reconnectInterval: 5000,
-    maxReconnectAttempts: 10,
-    batchSize: 10,
-    batchTimeout: 100
-  };
-}
-
-// Binance Perpetual Futures WebSocket URL for ticker data
-// Try alternative URLs if the primary one fails
-const BINANCE_FUTURES_WS_URLS = [
-  config.binanceWsUrl, // Primary: wss://fstream.binance.com/ws
-  'wss://fstream.binance.com/stream', // Alternative 1
-  'wss://dstream.binance.com/ws', // Alternative 2 (delivery futures)
-  'wss://dstream.binance.com/stream' // Alternative 3 (delivery futures)
-];
-
-/**
- * Binance Perpetual Futures Price Tracker
- * Optimized WebSocket client for real-time price data ingestion
- */
 class BinancePerpetualPriceTracker {
-  /**
-   * Create a new price tracker instance
-   * @param {string} storageType - Type of storage to use ('memory' or 'timescaledb')
-   */
   constructor(storageType = 'memory') {
     this.ws = null;
-    this.reconnectInterval = config.reconnectInterval || 5000; // 5 seconds
-    this.subscribedSymbols = new Set();
-    this.storage = StorageFactory.createStorage(storageType);
+    this.priceData = new Map();
+    this.history = new Map();
+    this.maxHistoryLength = 100;
+    this.reconnectInterval = 5000;
     this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = config.maxReconnectAttempts || 10;
+    this.maxReconnectAttempts = 10;
+    
+    // Add periodic cleanup interval
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupOldData();
+    }, 60000); // Run cleanup every minute
+    
+    // List of Binance WebSocket URLs to try
+    this.wsUrls = [
+      'wss://fstream.binance.com/ws',      // Primary perpetual futures
+      'wss://fstream.binance.com/stream',  // Alternative perpetual futures
+      'wss://dstream.binance.com/ws',      // Delivery futures
+      'wss://dstream.binance.com/stream',  // Alternative delivery futures
+      'wss://ws-api.binance.com/ws-api/v3' // General API
+    ];
     this.currentUrlIndex = 0;
-    this.baseUrlIndex = 0;
-    this.isConnecting = false;
-    
-    // Performance optimization: batch processing
-    this.priceUpdateQueue = [];
-    this.batchSize = config.batchSize || 10;
-    this.batchTimeout = config.batchTimeout || 100; // ms
-    this.batchTimer = null;
-  }
-
-  /**
-   * Connect to Binance WebSocket with improved error handling
-   */
-  connect() {
-    if (this.isConnecting) {
-      console.log('Connection attempt already in progress, skipping...');
-      return;
-    }
-    
-    this.isConnecting = true;
-    
-    // Rotate through URLs if we've exhausted retries on current URL
-    if (this.reconnectAttempts > 0 && this.reconnectAttempts % 3 === 0) {
-      this.currentUrlIndex = (this.currentUrlIndex + 1) % BINANCE_FUTURES_WS_URLS.length;
-      console.log(`Rotating to URL ${this.currentUrlIndex + 1}/${BINANCE_FUTURES_WS_URLS.length}: ${BINANCE_FUTURES_WS_URLS[this.currentUrlIndex]}`);
-    }
-    
-    const currentUrl = BINANCE_FUTURES_WS_URLS[this.currentUrlIndex];
-    console.log(`Connecting to Binance Perpetual Futures WebSocket at ${currentUrl}...`);
     
     // Add connection options to help with Docker networking
-    const wsOptions = {
+    this.wsOptions = {
       handshakeTimeout: 15000,
       followRedirects: true,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Origin': 'https://www.binance.com'
-      }
+      },
+      // Add options for better Docker compatibility
+      perMessageDeflate: false,
+      // Add timeout options
+      timeout: 15000
     };
     
-    try {
-      this.ws = new WebSocket(currentUrl, wsOptions);
-      
-      this.ws.on('open', () => {
-        console.log('Connected to Binance WebSocket');
-        this.isConnecting = false;
-        this.reconnectAttempts = 0;
-        this.currentUrlIndex = this.baseUrlIndex;
-        
-        // Resubscribe to symbols if we had any
-        if (this.subscribedSymbols.size > 0) {
-          this.subscribedSymbols.forEach(symbol => {
-            this.subscribeToSymbol(symbol);
-          });
+    // Initialize storage
+    if (storageType === 'timescaledb') {
+      const TimescaleDBStorage = require('../storage/timescaledb-storage');
+      this.storage = new TimescaleDBStorage();
+    } else {
+      const InMemoryStorage = require('../storage/memory-storage');
+      this.storage = new InMemoryStorage();
+    }
+    
+    this.subscribedSymbols = new Set();
+  }
+
+  // Rotate to the next WebSocket URL
+  rotateWsUrl() {
+    this.currentUrlIndex = (this.currentUrlIndex + 1) % this.wsUrls.length;
+    console.log(`Rotating to URL ${this.currentUrlIndex + 1}/${this.wsUrls.length}: ${this.wsUrls[this.currentUrlIndex]}`);
+    return this.wsUrls[this.currentUrlIndex];
+  }
+
+  // Test DNS resolution for a hostname
+  testDnsResolution(hostname) {
+    return new Promise((resolve, reject) => {
+      dns.lookup(hostname, (err, address, family) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve({ address, family });
         }
       });
+    });
+  }
 
+  // Test HTTPS connectivity to a URL
+  testHttpsConnectivity(url) {
+    return new Promise((resolve, reject) => {
+      const parsedUrl = new URL(url);
+      const options = {
+        hostname: parsedUrl.hostname,
+        port: 443,
+        path: parsedUrl.pathname,
+        method: 'GET',
+        timeout: 10000
+      };
+
+      const req = https.request(options, (res) => {
+        resolve({ statusCode: res.statusCode, headers: res.headers });
+      });
+
+      req.on('error', (e) => {
+        reject(e);
+      });
+
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('Request timeout'));
+      });
+
+      req.end();
+    });
+  }
+
+  async connect() {
+    const url = this.wsUrls[this.currentUrlIndex];
+    console.log(`Connecting to Binance Perpetual Futures WebSocket at ${url}...`);
+    
+    // Test DNS resolution
+    try {
+      const parsedUrl = new URL(url);
+      const dnsResult = await this.testDnsResolution(parsedUrl.hostname);
+      console.log(`DNS resolution successful for ${parsedUrl.hostname}: ${dnsResult.address}`);
+    } catch (dnsError) {
+      console.error(`DNS resolution failed for ${url}:`, dnsError.message);
+    }
+    
+    try {
+      // Close existing connection if any
+      if (this.ws) {
+        this.ws.removeAllListeners();
+        this.ws.close();
+      }
+      
+      // Create new WebSocket connection with options
+      this.ws = new WebSocket(url, this.wsOptions);
+      
+      this.ws.on('open', () => {
+        console.log('WebSocket connected successfully');
+        this.reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+        
+        // Resubscribe to all symbols
+        for (const symbol of this.subscribedSymbols) {
+          this.subscribeToSymbol(symbol);
+        }
+      });
+      
       this.ws.on('message', (data) => {
+        const messageStart = performance.now();
         try {
-          const jsonData = JSON.parse(data);
-          this.handleMessage(jsonData);
+          const parsed = JSON.parse(data);
+          
+          // Handle different message types
+          if (parsed.e === 'aggTrade') {
+            // Aggregate trade data
+            const symbol = parsed.s;
+            const price = parseFloat(parsed.p);
+            const timestamp = parsed.T;
+            
+            // Update price data
+            this.priceData.set(symbol, {
+              price,
+              timestamp,
+              volume: parseFloat(parsed.q)
+            });
+            
+            // Add to history
+            if (!this.history.has(symbol)) {
+              this.history.set(symbol, []);
+            }
+            
+            const history = this.history.get(symbol);
+            history.push({ price, timestamp });
+            
+            // Maintain history length
+            if (history.length > this.maxHistoryLength) {
+              history.shift();
+            }
+            
+            // Store in database
+            // Validate data before storing
+            if (timestamp && price && parsed.q) {
+              this.storage.storePriceData(symbol, {
+                timestamp: new Date(timestamp),
+                price: price,
+                volume: parseFloat(parsed.q)
+              });
+            } else {
+              console.warn('Skipping storage due to invalid data:', { symbol, timestamp, price, volume: parsed.q });
+            }
+            
+            // Performance monitoring
+            const messageDuration = performance.now() - messageStart;
+            if (messageDuration > 10) { // Log if processing takes more than 10ms
+              console.log(`[PERFORMANCE] WebSocket message processing for ${symbol} took ${messageDuration.toFixed(2)}ms`);
+            }
+          } else if (parsed.result !== undefined && parsed.id !== undefined) {
+            // This is a response to a subscription request
+            console.log('Subscription response received:', parsed);
+          }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
         }
       });
-
+      
       this.ws.on('error', (error) => {
         console.error('WebSocket error:', error.message);
         console.error('Error details:', error);
-        this.isConnecting = false;
+        this.handleDisconnect();
       });
-
+      
       this.ws.on('close', () => {
         console.log('WebSocket connection closed. Reconnecting...');
-        this.isConnecting = false;
-        this.reconnectAttempts++;
-        
-        if (this.reconnectAttempts <= this.maxReconnectAttempts) {
-          // Exponential backoff with jitter
-          const delay = Math.min(
-            this.reconnectInterval * Math.pow(1.5, this.reconnectAttempts - 1),
-            30000
-          ) + Math.random() * 1000;
-          
-          console.log(`Reconnect attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${Math.round(delay)}ms`);
-          setTimeout(() => {
-            this.connect();
-          }, delay);
-        } else {
-          console.error(`Max reconnect attempts (${this.maxReconnectAttempts}) reached. Exiting.`);
-          process.exit(1);
-        }
-      });
-      
-      this.ws.on('unexpected-response', (request, response) => {
-        console.error('Unexpected response from server:', response.statusCode, response.statusMessage);
-        this.isConnecting = false;
+        this.handleDisconnect();
       });
     } catch (error) {
-      console.error('Failed to create WebSocket connection:', error);
-      this.isConnecting = false;
-      if (this.reconnectAttempts <= this.maxReconnectAttempts) {
-        setTimeout(() => {
-          this.connect();
-        }, this.reconnectInterval);
-      }
+      console.error('Error creating WebSocket connection:', error);
+      this.handleDisconnect();
     }
   }
-
-  /**
-   * Subscribe to a symbol's ticker data
-   * @param {string} symbol - Trading pair symbol (e.g., 'BTCUSDT')
-   */
-  subscribeToSymbol(symbol) {
-    const symbolLower = symbol.toLowerCase();
-    this.subscribedSymbols.add(symbol);
-    
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      const subscribeMsg = {
-        method: 'SUBSCRIBE',
-        params: [`${symbolLower}@ticker`],
-        id: Date.now()
-      };
+  
+  handleDisconnect() {
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++;
+      const delay = Math.min(this.reconnectInterval * Math.pow(1.5, this.reconnectAttempts), 30000);
+      console.log(`Reconnect attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
       
-      this.ws.send(JSON.stringify(subscribeMsg));
-      console.log(`Subscribed to ${symbol} ticker data`);
+      setTimeout(() => {
+        // Try a different URL on reconnect attempts > 1
+        if (this.reconnectAttempts > 1) {
+          this.rotateWsUrl();
+        }
+        this.connect();
+      }, delay);
+    } else {
+      console.error('Max reconnect attempts reached. Please check your network connection.');
     }
   }
-
-  /**
-   * Handle incoming messages from WebSocket
-   * @param {Object} data - WebSocket message data
-   */
-  handleMessage(data) {
-    if (data.id) {
-      console.log('Subscription confirmed:', data);
+  
+  subscribeToSymbol(symbol) {
+    if (!this.ws) {
+      console.error('WebSocket not connected');
       return;
     }
     
-    if (data.e === '24hrTicker') {
-      const priceData = {
-        symbol: data.s,
-        price: parseFloat(data.c),
-        volume: parseFloat(data.v),
-        timestamp: new Date(data.E),
-        priceChange: parseFloat(data.p),
-        priceChangePercent: parseFloat(data.P)
+    if (this.ws.readyState !== WebSocket.OPEN) {
+      console.error('WebSocket not in OPEN state');
+      return;
+    }
+    
+    try {
+      const subscriptionMessage = {
+        method: 'SUBSCRIBE',
+        params: [`${symbol.toLowerCase()}@aggTrade`],
+        id: Date.now()
       };
       
-      // Queue for batch processing to improve performance
-      this.priceUpdateQueue.push(priceData);
+      this.ws.send(JSON.stringify(subscriptionMessage));
+      this.subscribedSymbols.add(symbol);
+      console.log(`Subscribed to ${symbol} aggregate trades`);
+    } catch (error) {
+      console.error(`Error subscribing to ${symbol}:`, error);
+    }
+  }
+  
+  unsubscribeFromSymbol(symbol) {
+    if (!this.ws) {
+      console.error('WebSocket not connected');
+      return;
+    }
+    
+    if (this.ws.readyState !== WebSocket.OPEN) {
+      console.error('WebSocket not in OPEN state');
+      return;
+    }
+    
+    try {
+      const unsubscriptionMessage = {
+        method: 'UNSUBSCRIBE',
+        params: [`${symbol.toLowerCase()}@aggTrade`],
+        id: Date.now()
+      };
       
-      // Process batch if queue is full
-      if (this.priceUpdateQueue.length >= this.batchSize) {
-        this.processBatch();
-      } else if (!this.batchTimer) {
-        // Set timer to process remaining items
-        this.batchTimer = setTimeout(() => {
-          this.processBatch();
-        }, this.batchTimeout);
+      this.ws.send(JSON.stringify(unsubscriptionMessage));
+      this.subscribedSymbols.delete(symbol);
+      console.log(`Unsubscribed from ${symbol} aggregate trades`);
+    } catch (error) {
+      console.error(`Error unsubscribing from ${symbol}:`, error);
+    }
+  }
+  
+  async getLatestPriceData(symbol) {
+    // Try to get from memory first
+    if (this.priceData.has(symbol)) {
+      return this.priceData.get(symbol);
+    }
+    
+    // Fall back to database
+    try {
+      const data = await this.storage.getLatestPriceData(symbol);
+      return data;
+    } catch (error) {
+      console.error(`Error getting latest price data for ${symbol}:`, error);
+      return null;
+    }
+  }
+  
+  async getPriceHistory(symbol, limit = 100) {
+    // Try to get from memory first
+    if (this.history.has(symbol)) {
+      const history = this.history.get(symbol);
+      return history.slice(-limit);
+    }
+    
+    // Fall back to database
+    try {
+      const history = await this.storage.getPriceHistory(symbol, limit);
+      return history;
+    } catch (error) {
+      console.error(`Error getting price history for ${symbol}:`, error);
+      return [];
+    }
+  }
+  
+  async getSummary() {
+    const summary = {};
+    
+    // Get data for all subscribed symbols
+    for (const symbol of this.subscribedSymbols) {
+      const latestData = await this.getLatestPriceData(symbol);
+      if (latestData) {
+        summary[symbol] = latestData;
       }
     }
-  }
-
-  /**
-   * Process batch of price updates for better performance
-   */
-  processBatch() {
-    if (this.batchTimer) {
-      clearTimeout(this.batchTimer);
-      this.batchTimer = null;
-    }
     
-    if (this.priceUpdateQueue.length === 0) return;
-    
-    // Process all queued updates
-    this.priceUpdateQueue.forEach(priceData => {
-      this.storage.storePriceData(priceData.symbol, priceData);
-      console.log(`[${priceData.timestamp.toLocaleTimeString()}] ${priceData.symbol}: $${priceData.price.toFixed(2)} | 24h Volume: ${priceData.volume.toFixed(2)}`);
-    });
-    
-    // Clear queue
-    this.priceUpdateQueue = [];
+    return summary;
   }
-
-  /**
-   * Get latest price data for a symbol
-   * @param {string} symbol - Trading pair symbol
-   * @returns {Object} Latest price data
-   */
-  getLatestPriceData(symbol) {
-    return this.storage.getLatestPriceData(symbol);
-  }
-
-  /**
-   * Get price history for a symbol
-   * @param {string} symbol - Trading pair symbol
-   * @returns {Array} Historical price data
-   */
-  getPriceHistory(symbol) {
-    return this.storage.getPriceHistory(symbol);
-  }
-
-  /**
-   * Get summary of all tracked symbols
-   * @returns {Object} Summary of all tracked symbols
-   */
-  getSummary() {
-    return this.storage.getSummary();
-  }
-
-  /**
-   * Close the WebSocket connection
-   */
-  close() {
-    // Process any remaining queued updates
-    this.processBatch();
-    
+  
+  async close() {
     if (this.ws) {
       this.ws.close();
     }
-    
-    if (this.storage && typeof this.storage.close === 'function') {
-      this.storage.close();
+    // Clear cleanup interval
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
     }
+    await this.storage.close();
+  }
+  
+  /**
+   * Clean up old data from memory to prevent memory leaks
+   */
+  cleanupOldData() {
+    const oneHourAgo = Date.now() - (60 * 60 * 1000); // 1 hour ago
+    
+    // Clean up old price data
+    for (const [symbol, data] of this.priceData.entries()) {
+      if (data.timestamp < oneHourAgo) {
+        this.priceData.delete(symbol);
+      }
+    }
+    
+    // Clean up old history data
+    for (const [symbol, history] of this.history.entries()) {
+      // Keep only data from the last hour
+      const recentHistory = history.filter(item => item.timestamp > oneHourAgo);
+      if (recentHistory.length === 0) {
+        this.history.delete(symbol);
+      } else {
+        this.history.set(symbol, recentHistory);
+      }
+    }
+    
+    console.log(`[MEMORY] Cleaned up old data. Current maps size: priceData=${this.priceData.size}, history=${Array.from(this.history.values()).reduce((sum, arr) => sum + arr.length, 0)}`);
   }
 }
 

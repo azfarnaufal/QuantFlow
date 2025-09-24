@@ -1,6 +1,14 @@
 # Use Node.js 18 as the base image
 FROM node:18
 
+# Install additional tools for debugging and update certificates
+RUN apt-get update && apt-get install -y \
+    curl \
+    dnsutils \
+    ca-certificates \
+    && update-ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Set the working directory
 WORKDIR /app
 
@@ -14,7 +22,7 @@ RUN npm ci
 COPY . .
 
 # Expose the port the app runs on
-EXPOSE 3000
+EXPOSE 3001
 
 # Command to run the application
 CMD ["node", "server.js"]

@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantFlow - Correlation Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #4b5563;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --light: #f9fafb;
+            --dark: #1f2937;
+            --border: #e5e7eb;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f3f4f6;
+            color: #374151;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            padding: 20px 0;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        select, button {
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        select {
+            background-color: white;
+            color: #374151;
+        }
+        
+        button {
+            background-color: #10b981;
+            color: white;
+            font-weight: 600;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 30px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .chart-container {
+            height: 500px;
+            position: relative;
+            margin: 20px 0;
+        }
+        
+        .heatmap-container {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+        }
+        
+        .heatmap-legend {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-size: 0.8rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ddd;
+        }
+        
+        .symbol-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .symbol-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background-color: #f9fafb;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--secondary);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--secondary);
+        }
+        
+        .error {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        
+        .back-btn {
+            background-color: var(--secondary);
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .controls {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .heatmap-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>QuantFlow - Correlation Analysis</h1>
+                <div class="controls">
+                    <select id="periodSelector">
+                        <option value="50">50 Data Points</option>
+                        <option value="100" selected>100 Data Points</option>
+                        <option value="200">200 Data Points</option>
+                    </select>
+                    <button id="analyzeBtn">Analyze Correlations</button>
+                    <button id="backBtn" class="back-btn">Back to Dashboard</button>
+                </div>
+            </div>
+        </header>
+        
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Correlation Matrix</div>
+                <div id="analysisInfo"></div>
+            </div>
+            <div class="symbol-selector">
+                <div class="symbol-option">
+                    <input type="checkbox" id="selectAll" checked>
+                    <label for="selectAll">Select All</label>
+                </div>
+            </div>
+            <div class="heatmap-container">
+                <div class="heatmap-legend" id="heatmapLegend"></div>
+                <div class="chart-container">
+                    <canvas id="correlationHeatmap"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Correlation Statistics</div>
+            </div>
+            <div class="stats-grid" id="correlationStats">
+                <div class="stat-card">
+                    <div class="stat-label">Average Correlation</div>
+                    <div class="stat-value" id="avgCorrelation">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Highest Correlation</div>
+                    <div class="stat-value" id="maxCorrelation">-</div>
+                    <div id="maxCorrelationPair">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Lowest Correlation</div>
+                    <div class="stat-value" id="minCorrelation">-</div>
+                    <div id="minCorrelationPair">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Positive Correlations</div>
+                    <div class="stat-value" id="positiveCount">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE = 'http://localhost:3001';
+        
+        // Global variables
+        let correlationChart = null;
+        let selectedSymbols = [];
+        
+        // DOM Elements
+        const periodSelector = document.getElementById('periodSelector');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const backBtn = document.getElementById('backBtn');
+        const selectAllCheckbox = document.getElementById('selectAll');
+        
+        // Initialize correlation analysis page
+        async function initCorrelationAnalysis() {
+            try {
+                // Load available symbols
+                await loadSymbols();
+                
+                // Set up event listeners
+                analyzeBtn.addEventListener('click', analyzeCorrelations);
+                backBtn.addEventListener('click', () => {
+                    window.location.href = 'advanced-dashboard.html';
+                });
+                selectAllCheckbox.addEventListener('change', toggleSelectAll);
+            } catch (error) {
+                console.error('Error initializing correlation analysis page:', error);
+                showError('Failed to initialize correlation analysis page.');
+            }
+        }
+        
+        // Load available symbols
+        async function loadSymbols() {
+            try {
+                const response = await fetch(`${API_BASE}/symbols`);
+                const data = await response.json();
+                
+                selectedSymbols = [...data.symbols];
+                
+                // Add symbols to selector
+                const symbolSelector = document.querySelector('.symbol-selector');
+                data.symbols.forEach(symbol => {
+                    const symbolOption = document.createElement('div');
+                    symbolOption.className = 'symbol-option';
+                    symbolOption.innerHTML = `
+                        <input type="checkbox" id="symbol_${symbol}" value="${symbol}" checked>
+                        <label for="symbol_${symbol}">${symbol}</label>
+                    `;
+                    symbolSelector.appendChild(symbolOption);
+                    
+                    // Add event listener
+                    const checkbox = symbolOption.querySelector('input');
+                    checkbox.addEventListener('change', handleSymbolSelection);
+                });
+            } catch (error) {
+                console.error('Error loading symbols:', error);
+                showError('Failed to load available symbols.');
+            }
+        }
+        
+        // Handle symbol selection
+        function handleSymbolSelection(event) {
+            const symbol = event.target.value;
+            const isChecked = event.target.checked;
+            
+            if (isChecked) {
+                if (!selectedSymbols.includes(symbol)) {
+                    selectedSymbols.push(symbol);
+                }
+            } else {
+                selectedSymbols = selectedSymbols.filter(s => s !== symbol);
+            }
+            
+            // Update select all checkbox
+            const allCheckboxes = document.querySelectorAll('.symbol-option input[type="checkbox"]:not(#selectAll)');
+            const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+            selectAllCheckbox.checked = allChecked && allCheckboxes.length > 0;
+        }
+        
+        // Toggle select all
+        function toggleSelectAll(event) {
+            const isChecked = event.target.checked;
+            const checkboxes = document.querySelectorAll('.symbol-option input[type="checkbox"]:not(#selectAll)');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+                const symbol = checkbox.value;
+                
+                if (isChecked) {
+                    if (!selectedSymbols.includes(symbol)) {
+                        selectedSymbols.push(symbol);
+                    }
+                } else {
+                    selectedSymbols = selectedSymbols.filter(s => s !== symbol);
+                }
+            });
+        }
+        
+        // Analyze correlations
+        async function analyzeCorrelations() {
+            const period = periodSelector.value;
+            
+            if (selectedSymbols.length < 2) {
+                showError('Please select at least 2 symbols for correlation analysis.');
+                return;
+            }
+            
+            try {
+                showLoading();
+                
+                // In a real implementation, this would call the correlation API
+                // For now, we'll simulate the results
+                setTimeout(() => {
+                    updateCorrelationHeatmap(selectedSymbols, period);
+                    updateCorrelationStats(selectedSymbols);
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Error analyzing correlations:', error);
+                showError('Failed to analyze correlations. Please try again.');
+            }
+        }
+        
+        // Update correlation heatmap
+        function updateCorrelationHeatmap(symbols, period) {
+            const ctx = document.getElementById('correlationHeatmap').getContext('2d');
+            const legendContainer = document.getElementById('heatmapLegend');
+            
+            if (correlationChart) {
+                correlationChart.destroy();
+            }
+            
+            // Generate mock correlation matrix
+            const size = symbols.length;
+            const matrix = [];
+            
+            for (let i = 0; i < size; i++) {
+                const row = [];
+                for (let j = 0; j < size; j++) {
+                    if (i === j) {
+                        row.push(1.0); // Diagonal is always 1
+                    } else {
+                        // Generate symmetric correlation values
+                        const value = (Math.random() * 2 - 1).toFixed(2);
+                        row.push(parseFloat(value));
+                    }
+                }
+                matrix.push(row);
+            }
+            
+            // Create heatmap
+            correlationChart = new Chart(ctx, {
+                type: 'heatmap',
+                data: {
+                    xLabels: symbols,
+                    yLabels: symbols,
+                    datasets: [{
+                        data: matrix.flat(),
+                        backgroundColor: function(context) {
+                            const value = context.dataset.data[context.dataIndex];
+                            // Color scale from red (-1) to white (0) to blue (1)
+                            const alpha = Math.abs(value);
+                            if (value >= 0) {
+                                return `rgba(37, 99, 235, ${alpha})`; // Blue for positive
+                            } else {
+                                return `rgba(239, 68, 68, ${alpha})`; // Red for negative
+                            }
+                        },
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                        borderWidth: 1,
+                        width: function(ctx) {
+                            const a = ctx.chart.chartArea;
+                            return (a.right - a.left) / symbols.length - 1;
+                        },
+                        height: function(ctx) {
+                            const a = ctx.chart.chartArea;
+                            return (a.bottom - a.top) / symbols.length - 1;
+                        }
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'category',
+                            position: 'top',
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            type: 'category',
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    const dataIndex = context[0].dataIndex;
+                                    const row = Math.floor(dataIndex / symbols.length);
+                                    const col = dataIndex % symbols.length;
+                                    return `${symbols[row]} vs ${symbols[col]}`;
+                                },
+                                label: function(context) {
+                                    const value = context.raw;
+                                    return `Correlation: ${value.toFixed(3)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Update analysis info
+            document.getElementById('analysisInfo').textContent = 
+                `Period: ${period} data points | Symbols: ${symbols.length}`;
+            
+            // Create heatmap legend
+            legendContainer.innerHTML = `
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: rgba(37, 99, 235, 1);"></div>
+                    <span>Positive Correlation</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: rgba(255, 255, 255, 1); border: 1px solid #ddd;"></div>
+                    <span>No Correlation</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: rgba(239, 68, 68, 1);"></div>
+                    <span>Negative Correlation</span>
+                </div>
+            `;
+        }
+        
+        // Update correlation statistics
+        function updateCorrelationStats(symbols) {
+            // Generate mock statistics
+            const avgCorrelation = (Math.random() * 0.6 - 0.3).toFixed(3);
+            const maxCorrelation = (Math.random() * 0.5 + 0.5).toFixed(3);
+            const minCorrelation = (Math.random() * -0.5 - 0.5).toFixed(3);
+            const positiveCount = Math.floor(Math.random() * (symbols.length * (symbols.length - 1) / 2));
+            
+            // Random symbol pairs for max/min
+            const symbolPairs = [];
+            for (let i = 0; i < symbols.length; i++) {
+                for (let j = i + 1; j < symbols.length; j++) {
+                    symbolPairs.push([symbols[i], symbols[j]]);
+                }
+            }
+            
+            const randomPair1 = symbolPairs[Math.floor(Math.random() * symbolPairs.length)];
+            const randomPair2 = symbolPairs[Math.floor(Math.random() * symbolPairs.length)];
+            
+            // Update DOM elements
+            document.getElementById('avgCorrelation').textContent = avgCorrelation;
+            document.getElementById('maxCorrelation').textContent = maxCorrelation;
+            document.getElementById('minCorrelation').textContent = minCorrelation;
+            document.getElementById('positiveCount').textContent = positiveCount;
+            document.getElementById('maxCorrelationPair').textContent = `${randomPair1[0]} & ${randomPair1[1]}`;
+            document.getElementById('minCorrelationPair').textContent = `${randomPair2[0]} & ${randomPair2[1]}`;
+        }
+        
+        // Show loading state
+        function showLoading() {
+            document.getElementById('correlationStats').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">Average Correlation</div>
+                    <div class="stat-value">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Highest Correlation</div>
+                    <div class="stat-value">-</div>
+                    <div>-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Lowest Correlation</div>
+                    <div class="stat-value">-</div>
+                    <div>-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Positive Correlations</div>
+                    <div class="stat-value">-</div>
+                </div>
+            `;
+        }
+        
+        // Show error message
+        function showError(message) {
+            // In a real implementation, you might want to show this in a more prominent way
+            console.error(message);
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initCorrelationAnalysis);
+    </script>
+</body>
+</html>

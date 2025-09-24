@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  timescaledb-staging:
+    image: timescale/timescaledb:latest-pg15
+    container_name: quantflow-timescaledb-staging
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: quantflow_staging
+    ports:
+      - "5433:5432"
+    volumes:
+      - timescaledb_staging_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis-staging:
+    image: redis:latest
+    container_name: quantflow-redis-staging
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_staging_data:/data
+    restart: unless-stopped
+
+  quantflow-staging:
+    build: .
+    container_name: quantflow-app-staging
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@timescaledb-staging:5432/quantflow_staging
+      - REDIS_URL=redis://redis-staging:6379
+      - NODE_ENV=staging
+      - CONFIG_FILE=src/config/config.staging.json
+    depends_on:
+      - timescaledb-staging
+      - redis-staging
+    restart: unless-stopped
+    volumes:
+      - ./src/config/config.staging.json:/app/src/config/config.staging.json
+
+  node-red-staging:
+    image: nodered/node-red:latest
+    container_name: quantflow-nodered-staging
+    ports:
+      - "1881:1880"
+    volumes:
+      - node_red_staging_data:/data
+    depends_on:
+      - quantflow-staging
+    restart: unless-stopped
+
+volumes:
+  timescaledb_staging_data:
+  redis_staging_data:
+  node_red_staging_data:

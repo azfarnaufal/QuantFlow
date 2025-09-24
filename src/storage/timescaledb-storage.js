@@ -26,8 +26,8 @@ try {
   // Use default config if file cannot be loaded
   config = {
     databaseUrl: 'postgresql://postgres:postgres@localhost:5432/quantflow',
-    dbPoolMax: 20,
-    dbPoolMin: 5,
+    dbPoolMax: 5,  // Reduced from 20 to 5
+    dbPoolMin: 2,  // Reduced from 5 to 2
     dbPoolIdleTimeout: 30000,
     dbPoolConnectionTimeout: 2000
   };
@@ -61,8 +61,9 @@ class TimescaleDBStorage {
    * Initialize database tables
    */
   async initDatabase() {
-    const client = await this.pool.connect();
+    let client;
     try {
+      client = await this.pool.connect();
       // Create prices table with hypertable for TimescaleDB
       await client.query(`
         CREATE TABLE IF NOT EXISTS prices (
@@ -84,11 +85,22 @@ class TimescaleDBStorage {
         CREATE INDEX IF NOT EXISTS idx_prices_symbol_time ON prices (symbol, time DESC);
       `);
       
+      // Add additional indexes for common queries
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_prices_time ON prices (time DESC);
+      `);
+      
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_prices_symbol ON prices (symbol);
+      `);
+      
       console.log('TimescaleDB initialized successfully');
     } catch (error) {
       console.error('Error initializing TimescaleDB:', error);
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
   }
 
@@ -98,6 +110,31 @@ class TimescaleDBStorage {
    * @param {Object} data - Price data
    */
   async storePriceData(symbol, data) {
+    // Validate input data
+    if (!symbol || !data) {
+      console.error('Invalid input: symbol or data is missing');
+      return;
+    }
+    
+    // Validate timestamp
+    if (!data.timestamp) {
+      console.error('Invalid input: timestamp is missing or null');
+      return;
+    }
+    
+    // Ensure timestamp is a valid Date object
+    const timestamp = new Date(data.timestamp);
+    if (isNaN(timestamp.getTime())) {
+      console.error('Invalid input: timestamp is not a valid date', data.timestamp);
+      return;
+    }
+    
+    // Validate price and volume
+    if (typeof data.price !== 'number' || typeof data.volume !== 'number') {
+      console.error('Invalid input: price or volume is not a number', data);
+      return;
+    }
+    
     const client = await this.pool.connect();
     try {
       const query = `
@@ -110,7 +147,7 @@ class TimescaleDBStorage {
       `;
       
       await client.query(query, [
-        data.timestamp,
+        timestamp,
         symbol,
         data.price,
         data.volume
@@ -139,8 +176,9 @@ class TimescaleDBStorage {
       return cachedData;
     }
     
-    const client = await this.pool.connect();
+    let client;
     try {
+      client = await this.pool.connect();
       const result = await client.query(
         'SELECT * FROM prices WHERE symbol = $1 ORDER BY time DESC LIMIT 1',
         [symbol]
@@ -158,7 +196,9 @@ class TimescaleDBStorage {
       console.error('Error getting latest price data:', error);
       return null;
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
   }
 
@@ -169,8 +209,9 @@ class TimescaleDBStorage {
    * @returns {Array} Historical price data
    */
   async getPriceHistory(symbol, limit = 100) {
-    const client = await this.pool.connect();
+    let client;
     try {
+      client = await this.pool.connect();
       const result = await client.query(
         'SELECT * FROM prices WHERE symbol = $1 ORDER BY time DESC LIMIT $2',
         [symbol, limit]
@@ -181,7 +222,9 @@ class TimescaleDBStorage {
       console.error('Error getting price history:', error);
       return [];
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
   }
 
@@ -192,8 +235,9 @@ class TimescaleDBStorage {
    * @returns {Array} OHLC data
    */
   async getOHLCData(symbol, hours = 24) {
-    const client = await this.pool.connect();
+    let client;
     try {
+      client = await this.pool.connect();
       // Calculate time range
       const endTime = new Date();
       const startTime = new Date(endTime.getTime() - (hours * 60 * 60 * 1000));
@@ -218,7 +262,9 @@ class TimescaleDBStorage {
       console.error('Error getting OHLC data:', error);
       return [];
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
   }
 
@@ -234,13 +280,19 @@ class TimescaleDBStorage {
       return cachedData;
     }
     
-    const client = await this.pool.connect();
+    let client;
     try {
+      client = await this.pool.connect();
+      // Optimized query using window function for better performance
       const result = await client.query(`
-        SELECT DISTINCT ON (symbol) 
-          symbol, price, volume, time
-        FROM prices 
-        ORDER BY symbol, time DESC
+        SELECT symbol, price, volume, time
+        FROM (
+          SELECT symbol, price, volume, time,
+                 ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY time DESC) as rn
+          FROM prices
+        ) ranked
+        WHERE rn = 1
+        ORDER BY symbol;
       `);
       
       const summary = {};
@@ -260,7 +312,9 @@ class TimescaleDBStorage {
       console.error('Error getting summary:', error);
       return {};
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
   }
 
@@ -269,16 +323,42 @@ class TimescaleDBStorage {
    * @returns {Array} List of symbols
    */
   async getSymbols() {
-    const client = await this.pool.connect();
+    let client;
     try {
+      client = await this.pool.connect();
       const result = await client.query('SELECT DISTINCT symbol FROM prices ORDER BY symbol');
       return result.rows.map(row => row.symbol);
     } catch (error) {
       console.error('Error getting symbols:', error);
       return [];
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
+  }
+
+  /**
+   * Get cache statistics
+   * @returns {Object} Cache statistics
+   */
+  getCacheStats() {
+    if (this.cache && typeof this.cache.getStats === 'function') {
+      return this.cache.getStats();
+    }
+    return { enabled: false };
+  }
+
+  /**
+   * Get database pool statistics
+   * @returns {Object} Database pool statistics
+   */
+  getPoolStats() {
+    return {
+      totalCount: this.pool.totalCount,
+      idleCount: this.pool.idleCount,
+      waitingCount: this.pool.waitingCount
+    };
   }
 
   /**

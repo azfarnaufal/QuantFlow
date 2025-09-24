@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantFlow - Strategy Comparison</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #4b5563;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --light: #f9fafb;
+            --dark: #1f2937;
+            --border: #e5e7eb;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f3f4f6;
+            color: #374151;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            padding: 20px 0;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        select, button {
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        select {
+            background-color: white;
+            color: #374151;
+        }
+        
+        button {
+            background-color: #10b981;
+            color: white;
+            font-weight: 600;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .chart-container {
+            height: 300px;
+            position: relative;
+            margin: 20px 0;
+        }
+        
+        .strategy-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .strategy-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .performance-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .performance-table th,
+        .performance-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .performance-table th {
+            background-color: #f9fafb;
+            font-weight: 600;
+        }
+        
+        .performance-table tr:hover {
+            background-color: #f9fafb;
+        }
+        
+        .metric-value {
+            font-weight: 600;
+        }
+        
+        .positive {
+            color: var(--success);
+        }
+        
+        .negative {
+            color: var(--danger);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--secondary);
+        }
+        
+        .error {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        
+        .back-btn {
+            background-color: var(--secondary);
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .controls {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>QuantFlow - Strategy Comparison</h1>
+                <div class="controls">
+                    <select id="symbolSelector">
+                        <option value="">Select a symbol</option>
+                    </select>
+                    <button id="compareBtn">Compare Strategies</button>
+                    <button id="backBtn" class="back-btn">Back to Dashboard</button>
+                </div>
+            </div>
+        </header>
+        
+        <div class="strategy-selector">
+            <div class="strategy-option">
+                <input type="checkbox" id="sma" value="simple_moving_average" checked>
+                <label for="sma">Simple Moving Average</label>
+            </div>
+            <div class="strategy-option">
+                <input type="checkbox" id="rsi" value="rsi_strategy" checked>
+                <label for="rsi">RSI Strategy</label>
+            </div>
+            <div class="strategy-option">
+                <input type="checkbox" id="macd" value="macd_strategy" checked>
+                <label for="macd">MACD Strategy</label>
+            </div>
+            <div class="strategy-option">
+                <input type="checkbox" id="bb" value="bollinger_bands" checked>
+                <label for="bb">Bollinger Bands</label>
+            </div>
+            <div class="strategy-option">
+                <input type="checkbox" id="ml" value="ml_strategy" checked>
+                <label for="ml">ML Strategy</label>
+            </div>
+        </div>
+        
+        <div class="comparison-grid">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Portfolio Value Comparison</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="portfolioChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Performance Metrics</div>
+                </div>
+                <table class="performance-table" id="performanceTable">
+                    <thead>
+                        <tr>
+                            <th>Strategy</th>
+                            <th>Total Return</th>
+                            <th>Win Rate</th>
+                            <th>Sharpe Ratio</th>
+                            <th>Max Drawdown</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="5" class="loading">Select a symbol and click "Compare Strategies"</td>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Risk-Return Profile</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="riskReturnChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE = 'http://localhost:3001';
+        
+        // Global variables
+        let portfolioChart = null;
+        let riskReturnChart = null;
+        
+        // DOM Elements
+        const symbolSelector = document.getElementById('symbolSelector');
+        const compareBtn = document.getElementById('compareBtn');
+        const backBtn = document.getElementById('backBtn');
+        
+        // Initialize comparison page
+        async function initComparison() {
+            try {
+                // Load available symbols
+                await loadSymbols();
+                
+                // Set up event listeners
+                compareBtn.addEventListener('click', compareStrategies);
+                backBtn.addEventListener('click', () => {
+                    window.location.href = 'advanced-dashboard.html';
+                });
+            } catch (error) {
+                console.error('Error initializing comparison page:', error);
+                showError('Failed to initialize comparison page.');
+            }
+        }
+        
+        // Load available symbols
+        async function loadSymbols() {
+            try {
+                const response = await fetch(`${API_BASE}/symbols`);
+                const data = await response.json();
+                
+                // Clear existing options
+                symbolSelector.innerHTML = '<option value="">Select a symbol</option>';
+                
+                // Add symbols to selector
+                data.symbols.forEach(symbol => {
+                    const option = document.createElement('option');
+                    option.value = symbol;
+                    option.textContent = symbol;
+                    symbolSelector.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading symbols:', error);
+                showError('Failed to load available symbols.');
+            }
+        }
+        
+        // Compare strategies
+        async function compareStrategies() {
+            const symbol = symbolSelector.value;
+            if (!symbol) {
+                showError('Please select a symbol first.');
+                return;
+            }
+            
+            // Get selected strategies
+            const selectedStrategies = [];
+            document.querySelectorAll('.strategy-option input:checked').forEach(checkbox => {
+                selectedStrategies.push(checkbox.value);
+            });
+            
+            if (selectedStrategies.length === 0) {
+                showError('Please select at least one strategy to compare.');
+                return;
+            }
+            
+            try {
+                showLoading();
+                
+                // In a real implementation, this would call the strategy comparison API
+                // For now, we'll simulate the results
+                setTimeout(() => {
+                    updateComparisonCharts(symbol, selectedStrategies);
+                    updatePerformanceTable(symbol, selectedStrategies);
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error comparing strategies:', error);
+                showError('Failed to compare strategies. Please try again.');
+            }
+        }
+        
+        // Update comparison charts
+        function updateComparisonCharts(symbol, strategies) {
+            // Portfolio Value Chart
+            const portfolioCtx = document.getElementById('portfolioChart').getContext('2d');
+            
+            if (portfolioChart) {
+                portfolioChart.destroy();
+            }
+            
+            // Generate mock data for portfolio values
+            const timePoints = Array.from({length: 50}, (_, i) => i);
+            const datasets = strategies.map((strategy, index) => {
+                const baseValue = 10000;
+                const values = timePoints.map(() => baseValue + (Math.random() - 0.5) * 2000);
+                const colors = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+                
+                return {
+                    label: getStrategyName(strategy),
+                    data: values,
+                    borderColor: colors[index % colors.length],
+                    backgroundColor: colors[index % colors.length] + '20',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.1
+                };
+            });
+            
+            portfolioChart = new Chart(portfolioCtx, {
+                type: 'line',
+                data: {
+                    labels: timePoints.map(t => `Day ${t}`),
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: $${context.parsed.y.toLocaleString(undefined, {maximumFractionDigits: 2})}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Risk-Return Chart
+            const riskReturnCtx = document.getElementById('riskReturnChart').getContext('2d');
+            
+            if (riskReturnChart) {
+                riskReturnChart.destroy();
+            }
+            
+            // Generate mock risk-return data
+            const riskReturnData = strategies.map(strategy => ({
+                x: Math.random() * 0.3, // Risk (standard deviation)
+                y: (Math.random() - 0.3) * 0.5, // Return
+                r: 5 + Math.random() * 10, // Point radius
+                strategy: getStrategyName(strategy)
+            }));
+            
+            riskReturnChart = new Chart(riskReturnCtx, {
+                type: 'bubble',
+                data: {
+                    datasets: [{
+                        label: 'Strategies',
+                        data: riskReturnData,
+                        backgroundColor: [
+                            'rgba(37, 99, 235, 0.6)',
+                            'rgba(16, 185, 129, 0.6)',
+                            'rgba(245, 158, 11, 0.6)',
+                            'rgba(239, 68, 68, 0.6)',
+                            'rgba(139, 92, 246, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(37, 99, 235, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(245, 158, 11, 1)',
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(139, 92, 246, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Risk (Standard Deviation)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Expected Return'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return (value * 100).toFixed(1) + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const point = context.raw;
+                                    return [
+                                        `Strategy: ${point.strategy}`,
+                                        `Risk: ${(point.x * 100).toFixed(2)}%`,
+                                        `Return: ${(point.y * 100).toFixed(2)}%`
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Update performance table
+        function updatePerformanceTable(symbol, strategies) {
+            const tableBody = document.querySelector('#performanceTable tbody');
+            
+            // Clear existing content
+            tableBody.innerHTML = '';
+            
+            // Add rows for each strategy
+            strategies.forEach(strategy => {
+                const row = document.createElement('tr');
+                
+                // Generate mock performance data
+                const totalReturn = (Math.random() * 50 - 10).toFixed(2);
+                const winRate = (Math.random() * 100).toFixed(1);
+                const sharpeRatio = (Math.random() * 2).toFixed(2);
+                const maxDrawdown = (Math.random() * 20).toFixed(2);
+                
+                row.innerHTML = `
+                    <td>${getStrategyName(strategy)}</td>
+                    <td class="metric-value ${parseFloat(totalReturn) >= 0 ? 'positive' : 'negative'}">
+                        ${parseFloat(totalReturn) >= 0 ? '+' : ''}${totalReturn}%
+                    </td>
+                    <td class="metric-value">${winRate}%</td>
+                    <td class="metric-value">${sharpeRatio}</td>
+                    <td class="metric-value negative">${maxDrawdown}%</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // Get strategy display name
+        function getStrategyName(strategyKey) {
+            const strategyNames = {
+                'simple_moving_average': 'Simple Moving Average',
+                'rsi_strategy': 'RSI Strategy',
+                'macd_strategy': 'MACD Strategy',
+                'bollinger_bands': 'Bollinger Bands',
+                'ml_strategy': 'ML Strategy'
+            };
+            
+            return strategyNames[strategyKey] || strategyKey;
+        }
+        
+        // Show loading state
+        function showLoading() {
+            const tableBody = document.querySelector('#performanceTable tbody');
+            tableBody.innerHTML = '<tr><td colspan="5" class="loading">Comparing strategies...</td></tr>';
+        }
+        
+        // Show error message
+        function showError(message) {
+            const tableBody = document.querySelector('#performanceTable tbody');
+            tableBody.innerHTML = `<tr><td colspan="5" class="error">${message}</td></tr>`;
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initComparison);
+    </script>
+</body>
+</html>

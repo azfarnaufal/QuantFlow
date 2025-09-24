@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantFlow - Advanced Crypto Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #4b5563;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --light: #f9fafb;
+            --dark: #1f2937;
+            --border: #e5e7eb;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f3f4f6;
+            color: #374151;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            padding: 20px 0;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        select, button {
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        select {
+            background-color: white;
+            color: #374151;
+        }
+        
+        button {
+            background-color: #10b981;
+            color: white;
+            font-weight: 600;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .nav-button {
+            background-color: var(--secondary);
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .price-display {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+        
+        .price-change {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .positive {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+        
+        .negative {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+        
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+        
+        .strategy-section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .strategy-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .strategy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .strategy-card {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .strategy-card h3 {
+            margin-bottom: 10px;
+            color: var(--dark);
+        }
+        
+        .performance-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .metric {
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+            color: var(--secondary);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--secondary);
+        }
+        
+        .error {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        
+        .timestamp {
+            font-size: 0.8rem;
+            color: var(--secondary);
+            text-align: right;
+            margin-top: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .controls {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>QuantFlow - Advanced Crypto Dashboard</h1>
+                <div class="controls">
+                    <select id="symbolSelector">
+                        <option value="">Select a symbol</option>
+                    </select>
+                    <select id="timeframeSelector">
+                        <option value="1h">1 Hour</option>
+                        <option value="4h">4 Hours</option>
+                        <option value="1d" selected>1 Day</option>
+                        <option value="1w">1 Week</option>
+                    </select>
+                    <button id="refreshBtn">Refresh Data</button>
+                </div>
+            </div>
+        </header>
+        
+        <div class="nav-buttons">
+            <button class="nav-button" id="strategyComparisonBtn">Strategy Comparison</button>
+            <button class="nav-button" id="correlationAnalysisBtn">Correlation Analysis</button>
+            <button class="nav-button" id="performanceDashboardBtn">Performance Dashboard</button>
+        </div>
+        
+        <div class="dashboard-grid">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Current Price</div>
+                    <div id="priceSymbol">-</div>
+                </div>
+                <div id="currentPrice" class="price-display">-</div>
+                <div id="priceChange" class="price-change">-</div>
+                <div id="priceTimestamp" class="timestamp">-</div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">24h High/Low</div>
+                    <div id="highLowSymbol">-</div>
+                </div>
+                <div style="margin: 15px 0;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span>High:</span>
+                        <span id="dayHigh" style="font-weight: 600;">-</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Low:</span>
+                        <span id="dayLow" style="font-weight: 600;">-</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="highLowChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Market Overview</div>
+                </div>
+                <div id="marketOverview">
+                    <div class="loading">Loading market data...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Price Chart</div>
+                <div id="chartSymbol">-</div>
+            </div>
+            <div class="chart-container">
+                <canvas id="priceChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="strategy-section">
+            <div class="card-header">
+                <div class="card-title">Strategy Performance</div>
+            </div>
+            <div class="strategy-controls">
+                <select id="strategySelector">
+                    <option value="simple_moving_average">Simple Moving Average</option>
+                    <option value="rsi_strategy">RSI Strategy</option>
+                    <option value="macd_strategy">MACD Strategy</option>
+                    <option value="bollinger_bands">Bollinger Bands</option>
+                    <option value="ml_strategy">ML Strategy</option>
+                </select>
+                <button id="runStrategyBtn">Run Strategy</button>
+                <button id="compareStrategiesBtn">Compare Strategies</button>
+            </div>
+            <div class="strategy-grid">
+                <div class="strategy-card">
+                    <h3>Current Strategy: <span id="currentStrategy">-</span></h3>
+                    <div id="strategyPerformance">
+                        <div class="loading">Run a strategy to see performance metrics</div>
+                    </div>
+                </div>
+                <div class="strategy-card">
+                    <h3>Backtest Results</h3>
+                    <div id="backtestResults">
+                        <div class="loading">Run backtest to see results</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE = 'http://localhost:3001';
+        
+        // Global variables
+        let priceChart = null;
+        let highLowChart = null;
+        let currentSymbol = '';
+        let currentData = [];
+        
+        // DOM Elements
+        const symbolSelector = document.getElementById('symbolSelector');
+        const timeframeSelector = document.getElementById('timeframeSelector');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const runStrategyBtn = document.getElementById('runStrategyBtn');
+        const compareStrategiesBtn = document.getElementById('compareStrategiesBtn');
+        const strategySelector = document.getElementById('strategySelector');
+        const strategyComparisonBtn = document.getElementById('strategyComparisonBtn');
+        const correlationAnalysisBtn = document.getElementById('correlationAnalysisBtn');
+        const performanceDashboardBtn = document.getElementById('performanceDashboardBtn');
+
+        // Initialize dashboard
+        async function initDashboard() {
+            try {
+                // Load available symbols
+                await loadSymbols();
+                
+                // Set up event listeners
+                symbolSelector.addEventListener('change', handleSymbolChange);
+                timeframeSelector.addEventListener('change', handleTimeframeChange);
+                refreshBtn.addEventListener('click', refreshData);
+                runStrategyBtn.addEventListener('click', runStrategy);
+                compareStrategiesBtn.addEventListener('click', compareStrategies);
+                strategyComparisonBtn.addEventListener('click', () => {
+                    window.location.href = 'strategy-comparison.html';
+                });
+                correlationAnalysisBtn.addEventListener('click', () => {
+                    window.location.href = 'correlation-analysis.html';
+                });
+                performanceDashboardBtn.addEventListener('click', () => {
+                    window.location.href = 'performance-dashboard.html';
+                });
+                
+                // Load initial data if a symbol is pre-selected
+                if (symbolSelector.value) {
+                    await loadSymbolData(symbolSelector.value);
+                }
+            } catch (error) {
+                console.error('Error initializing dashboard:', error);
+                showError('Failed to initialize dashboard. Please check your connection.');
+            }
+        }
+        
+        // Load available symbols
+        async function loadSymbols() {
+            try {
+                const response = await fetch(`${API_BASE}/symbols`);
+                const data = await response.json();
+                
+                // Clear existing options
+                symbolSelector.innerHTML = '<option value="">Select a symbol</option>';
+                
+                // Add symbols to selector
+                data.symbols.forEach(symbol => {
+                    const option = document.createElement('option');
+                    option.value = symbol;
+                    option.textContent = symbol;
+                    symbolSelector.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading symbols:', error);
+                showError('Failed to load available symbols.');
+            }
+        }
+        
+        // Handle symbol change
+        async function handleSymbolChange() {
+            const symbol = symbolSelector.value;
+            if (symbol) {
+                await loadSymbolData(symbol);
+            }
+        }
+        
+        // Handle timeframe change
+        async function handleTimeframeChange() {
+            if (currentSymbol) {
+                await loadSymbolData(currentSymbol);
+            }
+        }
+        
+        // Refresh data
+        async function refreshData() {
+            if (currentSymbol) {
+                await loadSymbolData(currentSymbol);
+            }
+        }
+        
+        // Load symbol data
+        async function loadSymbolData(symbol) {
+            try {
+                currentSymbol = symbol;
+                showLoading();
+                
+                // Get timeframe in hours
+                const timeframe = timeframeSelector.value;
+                let hours = 24; // default
+                
+                switch (timeframe) {
+                    case '1h':
+                        hours = 1;
+                        break;
+                    case '4h':
+                        hours = 4;
+                        break;
+                    case '1d':
+                        hours = 24;
+                        break;
+                    case '1w':
+                        hours = 168; // 7 days
+                        break;
+                }
+                
+                // Load OHLC data
+                await loadOHLCData(symbol, hours);
+                
+                // Load current price
+                await loadCurrentPrice(symbol);
+                
+                // Load market overview
+                await loadMarketOverview();
+                
+            } catch (error) {
+                console.error('Error loading symbol data:', error);
+                showError(`Failed to load data for ${symbol}.`);
+            }
+        }
+        
+        // Load OHLC data
+        async function loadOHLCData(symbol, hours) {
+            try {
+                const response = await fetch(`${API_BASE}/chart/ohlc/${symbol}?hours=${hours}`);
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    currentData = data;
+                    updatePriceChart(data);
+                    updateHighLowChart(data);
+                } else {
+                    showNoData();
+                }
+            } catch (error) {
+                console.error('Error loading OHLC data:', error);
+                showError(`Failed to load chart data for ${symbol}.`);
+            }
+        }
+        
+        // Load current price
+        async function loadCurrentPrice(symbol) {
+            try {
+                const response = await fetch(`${API_BASE}/price/${symbol}`);
+                const data = await response.json();
+                
+                if (data && data.price) {
+                    updatePriceDisplay(symbol, data);
+                }
+            } catch (error) {
+                console.error('Error loading current price:', error);
+                showError(`Failed to load current price for ${symbol}.`);
+            }
+        }
+        
+        // Load market overview
+        async function loadMarketOverview() {
+            try {
+                const response = await fetch(`${API_BASE}/prices`);
+                const data = await response.json();
+                
+                if (data) {
+                    updateMarketOverview(data);
+                }
+            } catch (error) {
+                console.error('Error loading market overview:', error);
+                showError('Failed to load market overview.');
+            }
+        }
+        
+        // Update price display
+        function updatePriceDisplay(symbol, data) {
+            document.getElementById('priceSymbol').textContent = symbol;
+            document.getElementById('currentPrice').textContent = `$${parseFloat(data.price).toFixed(2)}`;
+            
+            // Calculate price change (simplified)
+            const change = ((Math.random() - 0.5) * 2).toFixed(2); // Mock data
+            const changeElement = document.getElementById('priceChange');
+            changeElement.textContent = `${change > 0 ? '+' : ''}${change}%`;
+            changeElement.className = `price-change ${change > 0 ? 'positive' : 'negative'}`;
+            
+            document.getElementById('priceTimestamp').textContent = 
+                `Updated: ${new Date().toLocaleTimeString()}`;
+        }
+        
+        // Update market overview
+        function updateMarketOverview(data) {
+            const container = document.getElementById('marketOverview');
+            
+            if (Object.keys(data).length === 0) {
+                container.innerHTML = '<div class="loading">No market data available</div>';
+                return;
+            }
+            
+            let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">';
+            
+            Object.entries(data).forEach(([symbol, info]) => {
+                const change = ((Math.random() - 0.5) * 3).toFixed(2); // Mock data
+                html += `
+                    <div style="padding: 10px; border: 1px solid #e5e7eb; border-radius: 6px;">
+                        <div style="font-weight: 600; margin-bottom: 5px;">${symbol}</div>
+                        <div style="font-size: 1.1rem; font-weight: 700;">$${parseFloat(info.price).toFixed(2)}</div>
+                        <div style="font-size: 0.9rem; color: ${change > 0 ? '#10b981' : '#ef4444'};">
+                            ${change > 0 ? '+' : ''}${change}%
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        // Update price chart
+        function updatePriceChart(data) {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            const chartSymbol = document.getElementById('chartSymbol');
+            
+            if (priceChart) {
+                priceChart.destroy();
+            }
+            
+            // Prepare chart data
+            const labels = data.map(item => new Date(item.bucket).toLocaleTimeString());
+            const prices = data.map(item => parseFloat(item.close));
+            
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `${currentSymbol} Price`,
+                        data: prices,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxTicksLimit: 10
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: $${context.parsed.y.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            chartSymbol.textContent = currentSymbol;
+        }
+        
+        // Update high/low chart
+        function updateHighLowChart(data) {
+            const ctx = document.getElementById('highLowChart').getContext('2d');
+            const chartElement = document.getElementById('highLowSymbol');
+            
+            if (highLowChart) {
+                highLowChart.destroy();
+            }
+            
+            // Calculate 24h high/low
+            const prices = data.map(item => parseFloat(item.close));
+            const high = Math.max(...prices);
+            const low = Math.min(...prices);
+            
+            document.getElementById('dayHigh').textContent = `$${high.toFixed(2)}`;
+            document.getElementById('dayLow').textContent = `$${low.toFixed(2)}`;
+            
+            // Create bar chart for high/low
+            highLowChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['24h High', '24h Low'],
+                    datasets: [{
+                        label: 'Price',
+                        data: [high, low],
+                        backgroundColor: ['#10b981', '#ef4444'],
+                        borderColor: ['#059669', '#dc2626'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(0);
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+            
+            chartElement.textContent = currentSymbol;
+        }
+        
+        // Run strategy
+        async function runStrategy() {
+            if (!currentSymbol) {
+                showError('Please select a symbol first.');
+                return;
+            }
+            
+            const strategy = strategySelector.value;
+            const strategyName = strategySelector.options[strategySelector.selectedIndex].text;
+            
+            try {
+                const strategyElement = document.getElementById('currentStrategy');
+                const performanceElement = document.getElementById('strategyPerformance');
+                
+                strategyElement.textContent = strategyName;
+                performanceElement.innerHTML = '<div class="loading">Running strategy...</div>';
+                
+                // In a real implementation, this would call the strategy API
+                // For now, we'll simulate the results
+                setTimeout(() => {
+                    const mockResults = {
+                        totalReturn: ((Math.random() * 50) - 10).toFixed(2),
+                        winRate: (Math.random() * 100).toFixed(1),
+                        sharpeRatio: (Math.random() * 2).toFixed(2),
+                        maxDrawdown: (Math.random() * 20).toFixed(2)
+                    };
+                    
+                    performanceElement.innerHTML = `
+                        <div class="performance-metrics">
+                            <div class="metric">
+                                <div class="metric-value">${mockResults.totalReturn}%</div>
+                                <div class="metric-label">Total Return</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">${mockResults.winRate}%</div>
+                                <div class="metric-label">Win Rate</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">${mockResults.sharpeRatio}</div>
+                                <div class="metric-label">Sharpe Ratio</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">${mockResults.maxDrawdown}%</div>
+                                <div class="metric-label">Max Drawdown</div>
+                            </div>
+                        </div>
+                    `;
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Error running strategy:', error);
+                document.getElementById('strategyPerformance').innerHTML = 
+                    '<div class="error">Failed to run strategy. Please try again.</div>';
+            }
+        }
+        
+        // Compare strategies
+        async function compareStrategies() {
+            if (!currentSymbol) {
+                showError('Please select a symbol first.');
+                return;
+            }
+            
+            window.location.href = 'strategy-comparison.html';
+        }
+        
+        // Show loading state
+        function showLoading() {
+            document.getElementById('currentPrice').textContent = 'Loading...';
+            document.getElementById('priceChange').textContent = '-';
+            document.getElementById('dayHigh').textContent = '-';
+            document.getElementById('dayLow').textContent = '-';
+        }
+        
+        // Show no data state
+        function showNoData() {
+            document.getElementById('currentPrice').textContent = 'No data';
+            document.getElementById('priceChange').textContent = '-';
+            document.getElementById('dayHigh').textContent = 'No data';
+            document.getElementById('dayLow').textContent = 'No data';
+        }
+        
+        // Show error message
+        function showError(message) {
+            // In a real implementation, you might want to show this in a more prominent way
+            console.error(message);
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+</body>
+</html>

@@ -26,9 +26,11 @@
   "author": "Azfar Naufal",
   "license": "ISC",
   "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
     "axios": "^1.12.2",
     "express": "^5.1.0",
     "express-rate-limit": "^8.1.0",
+    "mathjs": "^14.7.0",
     "nodemailer": "^7.0.6",
     "pg": "^8.16.3",
     "redis": "^5.8.2",

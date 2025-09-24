@@ -7,14 +7,16 @@
     "SOLUSDT",
     "XRPUSDT"
   ],
-  "serverPort": 3000,
+  "serverPort": 3001,
   "reconnectInterval": 5000,
   "maxHistoryLength": 100,
-  "databaseUrl": "postgresql://postgres:postgres@localhost:5432/quantflow",
-  "dbPoolMax": 5,
+  "databaseUrl": "postgresql://postgres:postgres@timescaledb-staging:5432/quantflow_staging",
+  "dbPoolMax": 10,
   "dbPoolMin": 2,
   "dbPoolIdleTimeout": 30000,
   "dbPoolConnectionTimeout": 2000,
-  "redisUrl": "redis://localhost:6379",
-  "redisCacheTTL": 30
+  "redisUrl": "redis://redis-staging:6379",
+  "redisCacheTTL": 60,
+  "environment": "staging",
+  "logLevel": "debug"
 }

@@ -26,6 +26,7 @@ QuantFlow is a comprehensive quantitative trading platform that provides real-ti
 
 ### Machine Learning & AI
 - **ML-Based Strategies**: Machine learning strategies for price prediction
+- **Advanced ML Strategies**: LSTM, Transformer, Reinforcement Learning, and Ensemble strategies
 - **Portfolio Strategies**: Multi-asset portfolio backtesting
 - **Strategy Optimization**: Parameter optimization using historical data
 
@@ -36,6 +37,8 @@ QuantFlow is a comprehensive quantitative trading platform that provides real-ti
 
 ### Visualization & Monitoring
 - **Data Visualization Endpoints**: OHLC data for charting
+- **Interactive Dashboards**: Advanced real-time charts and strategy comparison tools
+- **Correlation Analysis**: Asset correlation visualization
 - **Swagger API Documentation**: Interactive API documentation
 - **Health Checks**: Comprehensive service health monitoring
 - **Prometheus & Grafana**: Monitoring and alerting
@@ -47,6 +50,7 @@ QuantFlow is a comprehensive quantitative trading platform that provides real-ti
 
 ### Containerization & Deployment
 - **Docker Support**: Containerized deployment with Docker Compose
+- **Staging Environment**: Isolated staging deployment for testing
 - **Kubernetes Deployment**: Production-ready Kubernetes configurations
 - **Automated Backups**: Scheduled database backups
 - **Microservices Architecture**: Scalable microservices design
@@ -123,8 +127,10 @@ http://localhost:3000/api-docs
 - `GET /history/{symbol}` - Get price history for a symbol
 - `GET /indicators/{symbol}` - Get technical indicators for a symbol
 - `GET /chart/ohlc/{symbol}` - Get OHLC data for charting
+- `GET /correlation` - Get correlation analysis between assets
 - `GET /backtest/strategies` - Get available backtesting strategies
 - `POST /backtest/run` - Run a backtest
+- `POST /strategy/compare` - Compare multiple trading strategies
 - `POST /backtest/optimize` - Optimize strategy parameters
 - `POST /data/import` - Import historical price data
 
@@ -150,12 +156,15 @@ quantflow/
 ├── src/
 │   ├── core/          # Core components (WebSocket client, storage)
 │   ├── strategies/    # Trading strategies
+│   │   └── advanced-ml/ # Advanced ML strategies (LSTM, Transformer, etc.)
 │   ├── backtesting/   # Backtesting engine
 │   ├── storage/       # Data storage implementations
 │   ├── utils/         # Utility functions
 │   └── config/        # Configuration files
 ├── docs/              # Documentation
 ├── examples/          # Example implementations
+├── public/            # Web dashboard files
+├── scripts/           # Utility scripts
 ├── tests/             # Unit and integration tests
 └── kubernetes/        # Kubernetes deployment files
 ```
@@ -171,6 +180,25 @@ npm test
 ```bash
 npm run lint
 ```
+
+### Advanced Features
+
+QuantFlow includes several advanced features for quantitative trading:
+
+1. **Advanced ML Strategies**: LSTM, Transformer, Reinforcement Learning, and Ensemble strategies in `src/strategies/advanced-ml/`
+2. **Interactive Dashboard**: Advanced visualization dashboard at `public/advanced-dashboard.html`
+3. **Strategy Comparison**: Compare multiple strategies with performance metrics
+4. **Correlation Analysis**: Analyze relationships between different assets
+5. **Staging Environment**: Isolated deployment environment for testing
+
+### Utility Scripts
+
+Several utility scripts are available in the `scripts/` directory:
+
+- `deploy-staging.sh` - Deploy to staging environment
+- `validate-backtest.js` - Validate backtesting results against market performance
+- `fine-tune-ml-models.js` - Fine-tune ML models with historical data
+- `network-troubleshoot.js` - Troubleshoot network connectivity issues
 
 ## Monitoring & Observability
 
