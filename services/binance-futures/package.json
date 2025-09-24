@@ -1,0 +1,24 @@
+{
+  "name": "binance-futures-service",
+  "version": "1.0.0",
+  "description": "Binance Futures Trading Service with Custom AI Engine",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.4.0",
+    "express": "^5.1.0",
+    "ws": "^8.13.0"
+  },
+  "keywords": [
+    "binance",
+    "futures",
+    "trading",
+    "ai",
+    "machine-learning"
+  ],
+  "author": "QuantFlow Team",
+  "license": "MIT"
+}

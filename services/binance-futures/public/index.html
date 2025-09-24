@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantFlow - AI Trading Platform</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #0ea5e9;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e293b;
+            --light: #f8fafc;
+            --gray: #94a3b8;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: var(--light);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--dark), #0c4a6e);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, var(--secondary), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: var(--gray);
+            margin-bottom: 1rem;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+        
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--gray);
+            font-weight: 500;
+        }
+        
+        input, select, button {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(15, 23, 42, 0.7);
+            color: var(--light);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+        }
+        
+        button {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, var(--primary-dark), var(--secondary));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        
+        .status {
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .status.success {
+            border-left: 4px solid var(--success);
+        }
+        
+        .status.error {
+            border-left: 4px solid var(--danger);
+        }
+        
+        .status.warning {
+            border-left: 4px solid var(--warning);
+        }
+        
+        #chat-messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            margin: 1rem 0;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 8px;
+        }
+        
+        .message {
+            margin: 0.75rem 0;
+            padding: 0.75rem;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+        
+        .user-message {
+            background: rgba(37, 99, 235, 0.2);
+            margin-left: auto;
+            text-align: right;
+        }
+        
+        .ai-message {
+            background: rgba(14, 165, 233, 0.2);
+            margin-right: auto;
+        }
+        
+        .performance-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .metric-card {
+            background: rgba(15, 23, 42, 0.7);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
+        }
+        
+        .metric-label {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+        
+        .positive {
+            color: var(--success);
+        }
+        
+        .negative {
+            color: var(--danger);
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            border-bottom: 3px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .symbol-selector {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        
+        .symbol-btn {
+            flex: 1;
+            padding: 0.75rem;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--light);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .symbol-btn.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-color: var(--primary);
+        }
+        
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: var(--gray);
+            margin-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn-group {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>QuantFlow AI Trading Platform</h1>
+            <p class="subtitle">Advanced AI-driven trading for Binance Perpetual Futures</p>
+        </header>
+        
+        <div class="symbol-selector">
+            <button class="symbol-btn active" data-symbol="BTCUSDT">BTC/USDT</button>
+            <button class="symbol-btn" data-symbol="ETHUSDT">ETH/USDT</button>
+            <button class="symbol-btn" data-symbol="BNBUSDT">BNB/USDT</button>
+            <button class="symbol-btn" data-symbol="SOLUSDT">SOL/USDT</button>
+            <button class="symbol-btn" data-symbol="XRPUSDT">XRP/USDT</button>
+        </div>
+        
+        <div class="dashboard">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Real-Time Price Chart</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Market Indicators</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="indicatorsChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Performance Metrics</h2>
+                </div>
+                <div class="performance-metrics">
+                    <div class="metric-card">
+                        <div class="metric-label">Total Return</div>
+                        <div class="metric-value positive" id="totalReturn">0.00%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Win Rate</div>
+                        <div class="metric-value" id="winRate">0.00%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Max Drawdown</div>
+                        <div class="metric-value negative" id="maxDrawdown">0.00%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Sharpe Ratio</div>
+                        <div class="metric-value" id="sharpeRatio">0.00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="market">Market Data</div>
+            <div class="tab" data-tab="chat">AI Chat</div>
+            <div class="tab" data-tab="backtest">Backtesting</div>
+            <div class="tab" data-tab="learning">AI Learning</div>
+        </div>
+        
+        <div class="tab-content active" id="market-tab">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Market Data</h2>
+                </div>
+                <div class="form-group">
+                    <label for="symbol">Symbol</label>
+                    <input type="text" id="symbol" placeholder="Symbol (e.g., BTCUSDT)" value="BTCUSDT">
+                </div>
+                <div class="btn-group">
+                    <button onclick="fetchMarketData()">Get Market Data</button>
+                    <button onclick="fetchHistoricalData()">Get Historical Data</button>
+                </div>
+                <div id="market-data-result"></div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="chat-tab">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">AI Chat Interface</h2>
+                </div>
+                <div id="chat-messages">
+                    <div class="message ai-message">
+                        Hello! I'm your QuantFlow AI trading assistant. Ask me about market analysis, trading signals, or backtesting.
+                    </div>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="chat-input" placeholder="Ask me anything about trading...">
+                </div>
+                <button onclick="sendMessage()">Send Message</button>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="backtest-tab">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Backtesting</h2>
+                </div>
+                <div class="form-group">
+                    <label for="backtest-symbol">Symbol</label>
+                    <input type="text" id="backtest-symbol" placeholder="Symbol" value="BTCUSDT">
+                </div>
+                <div class="form-group">
+                    <label for="backtest-days">Days</label>
+                    <input type="number" id="backtest-days" placeholder="Days" value="7" min="1" max="90">
+                </div>
+                <div class="form-group">
+                    <label for="backtest-interval">Interval</label>
+                    <select id="backtest-interval">
+                        <option value="1h">1 Hour</option>
+                        <option value="4h">4 Hours</option>
+                        <option value="1d">1 Day</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="confidence-threshold">Confidence Threshold</label>
+                    <input type="number" id="confidence-threshold" placeholder="0.55" value="0.55" min="0" max="1" step="0.05">
+                </div>
+                <button onclick="runBacktest()">Run Backtest</button>
+                <div id="backtest-result"></div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="learning-tab">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">AI Learning</h2>
+                </div>
+                <div class="form-group">
+                    <label for="learning-symbol">Symbol</label>
+                    <input type="text" id="learning-symbol" placeholder="Symbol" value="BTCUSDT">
+                </div>
+                <div class="form-group">
+                    <label for="learning-days">Days</label>
+                    <input type="number" id="learning-days" placeholder="Days" value="30" min="1" max="365">
+                </div>
+                <div class="btn-group">
+                    <button onclick="startLearning()">Start Learning</button>
+                    <button onclick="checkLearningStatus()">Check Status</button>
+                </div>
+                <div id="learning-status"></div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>QuantFlow AI Trading Platform &copy; 2025 | Advanced AI-driven trading for Binance Perpetual Futures</p>
+        </footer>
+    </div>
+
+    <script>
+        // Global variables
+        let priceChart = null;
+        let indicatorsChart = null;
+        let currentSymbol = 'BTCUSDT';
+        
+        // Initialize charts
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            setupEventListeners();
+            
+            // Set up symbol buttons
+            document.querySelectorAll('.symbol-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.symbol-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentSymbol = this.dataset.symbol;
+                    document.getElementById('symbol').value = currentSymbol;
+                    document.getElementById('backtest-symbol').value = currentSymbol;
+                    document.getElementById('learning-symbol').value = currentSymbol;
+                });
+            });
+            
+            // Set up tab switching
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabName = this.dataset.tab;
+                    
+                    // Update active tab
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show active content
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById(`${tabName}-tab`).classList.add('active');
+                });
+            });
+            
+            // Set up chat input
+            document.getElementById('chat-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        });
+        
+        // Initialize charts
+        function initializeCharts() {
+            const priceCtx = document.getElementById('priceChart').getContext('2d');
+            priceChart = new Chart(priceCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Price',
+                        data: [],
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            const indicatorsCtx = document.getElementById('indicatorsChart').getContext('2d');
+            indicatorsChart = new Chart(indicatorsCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'RSI',
+                            data: [],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 2,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'MACD',
+                            data: [],
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            borderWidth: 2,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            position: 'left',
+                            min: 0,
+                            max: 100,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        },
+                        y1: {
+                            beginAtZero: false,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false,
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            // Update charts with sample data
+            updateChartsWithSampleData();
+        }
+        
+        // Update charts with sample data
+        function updateChartsWithSampleData() {
+            // Generate sample data for price chart
+            const priceLabels = [];
+            const priceData = [];
+            let price = 30000;
+            
+            for (let i = 0; i < 20; i++) {
+                priceLabels.push(`T-${20-i}`);
+                priceData.push(price);
+                price += (Math.random() - 0.5) * 1000;
+            }
+            
+            priceChart.data.labels = priceLabels;
+            priceChart.data.datasets[0].data = priceData;
+            priceChart.update();
+            
+            // Generate sample data for indicators chart
+            const indicatorLabels = [];
+            const rsiData = [];
+            const macdData = [];
+            
+            for (let i = 0; i < 20; i++) {
+                indicatorLabels.push(`T-${20-i}`);
+                rsiData.push(30 + Math.random() * 40);
+                macdData.push((Math.random() - 0.5) * 2);
+            }
+            
+            indicatorsChart.data.labels = indicatorLabels;
+            indicatorsChart.data.datasets[0].data = rsiData;
+            indicatorsChart.data.datasets[1].data = macdData;
+            indicatorsChart.update();
+        }
+        
+        // Utility function to display messages
+        function showMessage(elementId, message, isError = false) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = message;
+            element.className = isError ? 'status error' : 'status success';
+        }
+        
+        // Fetch real-time market data
+        async function fetchMarketData() {
+            const symbol = document.getElementById('symbol').value || currentSymbol;
+            
+            try {
+                const response = await fetch(`/api/data/${symbol}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const result = `
+                        <h3>Market Data for ${data.symbol}</h3>
+                        <pre>${JSON.stringify(data.data, null, 2)}</pre>
+                    `;
+                    showMessage('market-data-result', result);
+                } else {
+                    showMessage('market-data-result', `Error: ${data.error}`, true);
+                }
+            } catch (error) {
+                showMessage('market-data-result', `Error: ${error.message}`, true);
+            }
+        }
+        
+        // Fetch historical data
+        async function fetchHistoricalData() {
+            const symbol = document.getElementById('symbol').value || currentSymbol;
+            
+            try {
+                const response = await fetch(`/api/binance/history/${symbol}?days=7`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const result = `
+                        <h3>Historical Data for ${data.symbol}</h3>
+                        <p>Data points: ${data.count}</p>
+                        <p>Interval: ${data.interval}</p>
+                        <p>Days: ${data.days}</p>
+                        <details>
+                            <summary>View Data (first 5 entries)</summary>
+                            <pre>${JSON.stringify(data.data.slice(0, 5), null, 2)}</pre>
+                        </details>
+                    `;
+                    showMessage('market-data-result', result);
+                } else {
+                    showMessage('market-data-result', `Error: ${data.error}`, true);
+                }
+            } catch (error) {
+                showMessage('market-data-result', `Error: ${error.message}`, true);
+            }
+        }
+        
+        // Send message to AI chat
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message to chat
+            addMessageToChat(message, 'user');
+            input.value = '';
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        context: {
+                            symbol: currentSymbol
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addMessageToChat(data.response, 'ai');
+                } else {
+                    addMessageToChat(`Error: ${data.error}`, 'ai');
+                }
+            } catch (error) {
+                addMessageToChat(`Error: ${error.message}`, 'ai');
+            }
+        }
+        
+        // Add message to chat display
+        function addMessageToChat(content, sender) {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            messageDiv.textContent = content;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Run backtest
+        async function runBacktest() {
+            const symbol = document.getElementById('backtest-symbol').value || currentSymbol;
+            const days = document.getElementById('backtest-days').value || 7;
+            const interval = document.getElementById('backtest-interval').value || '1h';
+            const confidenceThreshold = document.getElementById('confidence-threshold').value || 0.55;
+            
+            // First, fetch historical data
+            try {
+                showMessage('backtest-result', 'Fetching historical data...');
+                
+                const historyResponse = await fetch(`/api/binance/history/${symbol}?days=${days}&interval=${interval}`);
+                const historyData = await historyResponse.json();
+                
+                if (!historyData.success) {
+                    showMessage('backtest-result', `Error fetching data: ${historyData.error}`, true);
+                    return;
+                }
+                
+                showMessage('backtest-result', `Running backtest on ${historyData.count} data points...`);
+                
+                // Run backtest
+                const backtestResponse = await fetch('/api/backtest', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        historicalData: historyData.data.map(kline => ({
+                            timestamp: kline.openTime,
+                            open: kline.open,
+                            high: kline.high,
+                            low: kline.low,
+                            close: kline.close,
+                            volume: kline.volume,
+                            rsi: 50, // Mock RSI
+                            macd: 0, // Mock MACD
+                            vwap: (kline.open + kline.high + kline.low + kline.close) / 4
+                        })),
+                        initialCapital: 10000,
+                        config: {
+                            confidenceThreshold: parseFloat(confidenceThreshold)
+                        }
+                    })
+                });
+                
+                const backtestResult = await backtestResponse.json();
+                
+                if (backtestResult.success) {
+                    // Update performance metrics
+                    document.getElementById('totalReturn').textContent = backtestResult.data.performanceMetrics.totalReturn;
+                    document.getElementById('winRate').textContent = backtestResult.data.performanceMetrics.winRate;
+                    document.getElementById('maxDrawdown').textContent = backtestResult.data.performanceMetrics.maxDrawdown;
+                    document.getElementById('sharpeRatio').textContent = backtestResult.data.performanceMetrics.sharpeRatio;
+                    
+                    const result = `
+                        <h3>Backtest Results</h3>
+                        <p>Total Return: <span class="${parseFloat(backtestResult.data.totalReturn) >= 0 ? 'positive' : 'negative'}">${backtestResult.data.performanceMetrics.totalReturn}</span></p>
+                        <p>Win Rate: ${backtestResult.data.performanceMetrics.winRate}</p>
+                        <p>Max Drawdown: <span class="negative">${backtestResult.data.performanceMetrics.maxDrawdown}</span></p>
+                        <p>Sharpe Ratio: ${backtestResult.data.performanceMetrics.sharpeRatio}</p>
+                        <p>Profit Factor: ${backtestResult.data.performanceMetrics.profitFactor}</p>
+                        <p>Number of Trades: ${backtestResult.data.numTrades}</p>
+                        <details>
+                            <summary>View Full Results</summary>
+                            <pre>${JSON.stringify(backtestResult.data, null, 2)}</pre>
+                        </details>
+                    `;
+                    showMessage('backtest-result', result);
+                } else {
+                    showMessage('backtest-result', `Error: ${backtestResult.error}`, true);
+                }
+            } catch (error) {
+                showMessage('backtest-result', `Error: ${error.message}`, true);
+            }
+        }
+        
+        // Start AI learning
+        async function startLearning() {
+            const symbol = document.getElementById('learning-symbol').value || currentSymbol;
+            const days = document.getElementById('learning-days').value || 30;
+            
+            try {
+                showMessage('learning-status', 'Starting AI learning process...');
+                
+                const response = await fetch('/api/learning/train', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        days: parseInt(days),
+                        interval: '1h'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const result = `
+                        <h3>Learning Completed</h3>
+                        <p>Models trained: ${data.result.modelsTrained.join(', ')}</p>
+                        <p>Data points processed: ${data.dataPoints}</p>
+                        ${data.result.trainingResults ? `
+                        <p>Neural Network Error: ${data.result.trainingResults.neuralNetwork ? data.result.trainingResults.neuralNetwork.finalError.toFixed(6) : 'N/A'}</p>
+                        <p>Reinforcement Agent Reward: ${data.result.trainingResults.reinforcementAgent ? data.result.trainingResults.reinforcementAgent.averageReward.toFixed(4) : 'N/A'}</p>
+                        ` : ''}
+                    `;
+                    showMessage('learning-status', result);
+                } else {
+                    showMessage('learning-status', `Error: ${data.error}`, true);
+                }
+            } catch (error) {
+                showMessage('learning-status', `Error: ${error.message}`, true);
+            }
+        }
+        
+        // Check learning status
+        async function checkLearningStatus() {
+            try {
+                const response = await fetch('/api/learning/status');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const status = data.status;
+                    const result = `
+                        <h3>Learning Status</h3>
+                        <p>Currently Learning: ${status.isLearning ? 'Yes' : 'No'}</p>
+                        <p>Log Entries: ${status.logEntries}</p>
+                        ${status.lastSession ? `<p>Last Session: ${status.lastSession.symbol} at ${status.lastSession.endTime || 'recently'}</p>` : ''}
+                    `;
+                    showMessage('learning-status', result);
+                } else {
+                    showMessage('learning-status', `Error: ${data.error}`, true);
+                }
+            } catch (error) {
+                showMessage('learning-status', `Error: ${error.message}`, true);
+            }
+        }
+    </script>
+</body>
+</html>

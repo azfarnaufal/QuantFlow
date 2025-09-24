@@ -131,6 +131,17 @@ services:
       - trading
       - ai-agent
 
+  # Enhanced QuantFlow Binance Futures Service
+  binance-futures:
+    build: ./services/binance-futures
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+    depends_on:
+      - kafka
+      - redis
+
 volumes:
   timescaledb_data:
   node_red_data:
