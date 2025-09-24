@@ -25,4 +25,4 @@ COPY . .
 EXPOSE 3002
 
 # Command to run the application
-CMD ["node", "server.js"]
+CMD ["node", "real-ai-server.js"]

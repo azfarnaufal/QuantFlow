@@ -15,14 +15,14 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@tensorflow/tfjs-node": "^4.10.0",
     "express": "^4.18.2",
     "express-rate-limit": "^6.7.0",
-    "swagger-ui-express": "^4.6.2",
-    "ws": "^8.13.0",
+    "kafkajs": "^2.2.4",
     "pg": "^8.11.0",
     "redis": "^4.6.7",
-    "kafkajs": "^2.2.4",
-    "@tensorflow/tfjs-node": "^4.10.0"
+    "swagger-ui-express": "^4.6.2",
+    "ws": "^8.13.0"
   },
   "devDependencies": {
     "jest": "^29.5.0"
