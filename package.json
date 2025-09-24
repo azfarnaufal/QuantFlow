@@ -1,7 +1,7 @@
 {
   "name": "quantflow",
   "version": "1.0.0",
-  "description": "Quantitative trading platform with real-time market data, ML predictions, and backtesting engine",
+  "description": "Advanced cryptocurrency price tracking and trading platform with machine learning capabilities",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -14,39 +14,17 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
   },
-  "keywords": [
-    "quantitative-finance",
-    "trading",
-    "machine-learning",
-    "backtesting",
-    "binance",
-    "cryptocurrency",
-    "websocket"
-  ],
-  "author": "Azfar Naufal",
-  "license": "ISC",
   "dependencies": {
-    "@tensorflow/tfjs": "^4.22.0",
-    "axios": "^1.12.2",
-    "express": "^5.1.0",
-    "express-rate-limit": "^8.1.0",
-    "mathjs": "^14.7.0",
-    "nodemailer": "^7.0.6",
-    "pg": "^8.16.3",
-    "redis": "^5.8.2",
-    "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1",
-    "ws": "^8.18.3"
+    "express": "^4.18.2",
+    "express-rate-limit": "^6.7.0",
+    "swagger-ui-express": "^4.6.2",
+    "ws": "^8.13.0",
+    "pg": "^8.11.0",
+    "redis": "^4.6.7",
+    "kafkajs": "^2.2.4",
+    "@tensorflow/tfjs-node": "^4.10.0"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
-    "supertest": "^6.3.4"
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "collectCoverageFrom": [
-      "src/**/*.js",
-      "!src/**/*.test.js"
-    ]
+    "jest": "^29.5.0"
   }
 }
